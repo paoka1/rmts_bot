@@ -9,7 +9,7 @@ from rmts.utils.info import get_nickname
 from .deepseek import RMTSPlugin
 
 # 初始化 deepseek 客户端
-rmts = RMTSPlugin()
+rmts = RMTSPlugin(max_history=100)
 rmts.init_client()
 
 # 艾特机器人时触发的聊天响应器
