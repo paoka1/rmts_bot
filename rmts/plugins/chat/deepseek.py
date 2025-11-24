@@ -3,6 +3,11 @@ import os
 from openai import OpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
+from openai.types.chat import ChatCompletionAssistantMessageParam
+
+from typing import List, Union
+
+from .history import save_messages_to_file, load_messages_from_file
 
 prompt = """
 # 迷迭香 Rosmontis——角色核心设定
@@ -99,7 +104,7 @@ class RMTSPlugin:
         self.prompt = prompt
         self.max_history = max_history
         # 初始化历史消息列表，包含系统提示
-        self.messages = [
+        self.messages: List[Union[ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam]] = [
             ChatCompletionSystemMessageParam(content=self.prompt, role="system"),
         ]
 
@@ -126,16 +131,28 @@ class RMTSPlugin:
                     stream=False
                     )
         # 获取助手响应内容
-        assistant_message = response.choices[0].message.content
+        assistant_message = response.choices[0].message.content or ""
         # 将助手响应添加到历史记录
         self.messages.append(
-            ChatCompletionUserMessageParam(content=assistant_message, role="assistant")
+            ChatCompletionAssistantMessageParam(content=assistant_message, role="assistant")
         )
         # 再次检查消息长度限制
         while len(self.messages) > self.max_history + 1:
             self.messages.pop(1)
         # 返回响应内容
         return assistant_message
+    
+    def save_messages(self, filename: str = "rosmontis_chat.json"):
+        """保存当前会话的消息历史"""
+        return save_messages_to_file(self.messages, filename)
+    
+    def load_messages(self, filename: str = "rosmontis_chat.json"):
+        """加载消息历史到当前会话"""
+        loaded_messages = load_messages_from_file(filename)
+        if loaded_messages:
+            self.messages = loaded_messages
+            return True
+        return False
 
 
 if __name__ == "__main__":
@@ -150,9 +167,15 @@ if __name__ == "__main__":
         print("-" * 50)
         print("history messages:")
         for msg in plugin.messages:
-            if len(msg["content"]) > 30:
-                print(f"{msg['content'][:30]}")
+            # 安全地获取 content 并检查类型
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                if len(content) > 30:
+                    print(f"{content[:30]}...")
+                else:
+                    print(f"{content}")
             else:
-                print(f"{msg['content']}")
+                # 处理非字符串的 content（如 Iterable）
+                print("[复杂内容类型]")
             print("=" * 20)
         print("-" * 50)
