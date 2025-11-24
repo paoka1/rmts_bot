@@ -1,3 +1,4 @@
+from nonebot import get_driver
 from nonebot import on_message, on_notice
 from nonebot.rule import to_me, Rule
 from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent
@@ -34,3 +35,10 @@ async def handle_poke(bot: Bot, event: PokeNotifyEvent):
     text = f"博士（TA的名字是：{nickname}）戳了戳你"
     reply = rmts.chat(text)
     await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
+
+# 在程序关闭时保存聊天记录
+driver = get_driver()
+
+@driver.on_shutdown
+async def save_chat_history():
+    rmts.save_messages()

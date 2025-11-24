@@ -103,10 +103,15 @@ class RMTSPlugin:
         self.key = key
         self.prompt = prompt
         self.max_history = max_history
-        # 初始化历史消息列表，包含系统提示
-        self.messages: List[Union[ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam]] = [
-            ChatCompletionSystemMessageParam(content=self.prompt, role="system"),
-        ]
+        self.messages: List[Union[ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam]] = []
+
+        # 读取历史消息
+        messages = self.load_messages()
+        if messages == []:
+            # 初始化历史消息列表，包含系统提示
+            self.messages.append(ChatCompletionSystemMessageParam(content=self.prompt, role="system"))
+        else:
+            self.messages = messages
 
     def init_client(self):
         self.client = OpenAI(
@@ -148,12 +153,7 @@ class RMTSPlugin:
     
     def load_messages(self, filename: str = "rosmontis_chat.json"):
         """加载消息历史到当前会话"""
-        loaded_messages = load_messages_from_file(filename)
-        if loaded_messages:
-            self.messages = loaded_messages
-            return True
-        return False
-
+        return load_messages_from_file(filename)
 
 if __name__ == "__main__":
     plugin = RMTSPlugin(max_history=3)
