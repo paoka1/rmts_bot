@@ -7,6 +7,15 @@
 3. writing your plugins under `rmts/plugins` folder.
 4. run your bot using `nb run --reload` .
 
+## Environment variables
+
+1. DEEPSEEK_API_KEY(Optional)
+2. ONEBOT_ACCESS_TOKEN(Optional)
+3. GREET_AVAILABLE_GROUPS(Optional)
+4. NAPCAT_URL(Unnecessary)
+5. NAPCAT_PORT(Unnecessary)
+6. NAPCAT_TOKEN(Unnecessary)
+
 ## Documentation
 
 See [Docs](https://nonebot.dev/)
