@@ -12,10 +12,10 @@
 1. DEEPSEEK_API_KEY(Optional)
 2. ONEBOT_ACCESS_TOKEN(Optional)
 3. GREET_AVAILABLE_GROUPS(Optional)
-4. NAPCAT_URL(Unnecessary)
-5. NAPCAT_PORT(Unnecessary)
-6. NAPCAT_TOKEN(Unnecessary)
-7. AVLIABLE_CLEAR_HISTORY_GROUPS(Unnecessary)
+4. AVLIABLE_CLEAR_HISTORY_GROUPS(Optional)
+5. NAPCAT_URL(Unnecessary)
+6. NAPCAT_PORT(Unnecessary)
+7. NAPCAT_TOKEN(Unnecessary)
 
 ## Documentation
 

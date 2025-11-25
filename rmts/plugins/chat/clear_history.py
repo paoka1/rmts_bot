@@ -20,7 +20,7 @@ class ClearHistory:
         self.timeout = timeout
 
     def try_clear(self, group_id: int, sender_id: int) -> str:
-        if self.avliable_groups[group_id] is None:
+        if str(group_id) not in self.avliable_groups:
             return "清理记忆功能未启用"
         
         if group_id not in self.votes:

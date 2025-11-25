@@ -59,7 +59,7 @@ async def save_chat_history():
 # 记忆清除
 history_clearer = ClearHistory(rmts)
 
-clear_history_handler = on_fullmatch("清除记忆", rule=Rule(to_me(), is_type(GroupMessageEvent)), priority=2, block=True)
+clear_history_handler = on_fullmatch("清除记忆", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @clear_history_handler.handle()
 async def handle_clear_history(event: GroupMessageEvent):
