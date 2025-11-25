@@ -154,6 +154,11 @@ class RMTSPlugin:
     def load_messages(self, filename: str = "rosmontis_chat.json"):
         """加载消息历史到当前会话"""
         return load_messages_from_file(filename)
+    
+    def clear_history(self):
+        """清除当前会话的消息历史，保留系统提示"""
+        self.messages.clear()
+        self.messages.append(ChatCompletionSystemMessageParam(content=self.prompt, role="system"))
 
 if __name__ == "__main__":
     plugin = RMTSPlugin(max_history=3)

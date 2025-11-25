@@ -15,6 +15,7 @@
 4. NAPCAT_URL(Unnecessary)
 5. NAPCAT_PORT(Unnecessary)
 6. NAPCAT_TOKEN(Unnecessary)
+7. AVLIABLE_CLEAR_HISTORY_GROUPS(Unnecessary)
 
 ## Documentation
 

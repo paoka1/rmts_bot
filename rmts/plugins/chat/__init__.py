@@ -1,15 +1,18 @@
 import random
 
 from nonebot import get_driver
-from nonebot import on_message, on_notice
+from nonebot.rule import is_type
+from nonebot import on_message, on_notice, on_fullmatch
 from nonebot.rule import to_me, Rule
 from nonebot.adapters.onebot.v11 import MessageSegment, MessageEvent
 from nonebot.adapters.onebot.v11 import Bot, PokeNotifyEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 from rmts.utils.rule import is_poke_me
 from rmts.utils.info import get_nickname
 
 from .deepseek import RMTSPlugin
+from .clear_history import ClearHistory
 
 # 初始化 deepseek 客户端
 rmts = RMTSPlugin(max_history=100)
@@ -51,3 +54,18 @@ driver = get_driver()
 @driver.on_shutdown
 async def save_chat_history():
     rmts.save_messages()
+
+
+# 记忆清除
+history_clearer = ClearHistory(rmts)
+
+clear_history_handler = on_fullmatch("清除记忆", rule=Rule(to_me(), is_type(GroupMessageEvent)), priority=2, block=True)
+
+@clear_history_handler.handle()
+async def handle_clear_history(event: GroupMessageEvent):
+    group_id = event.group_id
+    sender_id = event.user_id
+    reply = history_clearer.try_clear(group_id, sender_id)
+    await clear_history_handler.finish(
+        MessageSegment.reply(event.message_id) + f"{reply}"
+    )
