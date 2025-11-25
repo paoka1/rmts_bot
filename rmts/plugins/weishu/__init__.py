@@ -8,7 +8,7 @@ from .weishu import WeiShu
 
 weishu_wait = WeiShu()
 
-weishu_invite_matcher = on_keyword(set(["邀请你加入卫戍协议:盟约【"]), rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
+weishu_invite_matcher = on_keyword(set(["邀请你加入卫戍协议:盟约【"]), rule=is_type(GroupMessageEvent), priority=2, block=True)
 
 @weishu_invite_matcher.handle()
 async def handle_invite(bot: Bot, event: GroupMessageEvent):
