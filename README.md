@@ -13,9 +13,10 @@
 2. ONEBOT_ACCESS_TOKEN(Optional)
 3. GREET_AVAILABLE_GROUPS(Optional)
 4. AVLIABLE_CLEAR_HISTORY_GROUPS(Optional)
-5. NAPCAT_URL(Unnecessary)
-6. NAPCAT_PORT(Unnecessary)
-7. NAPCAT_TOKEN(Unnecessary)
+5. ROULETTE_AVAILABLE_GROUPS(Optional)
+6. NAPCAT_URL(Unnecessary)
+7. NAPCAT_PORT(Unnecessary)
+8. NAPCAT_TOKEN(Unnecessary)
 
 ## Documentation
 
