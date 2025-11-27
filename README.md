@@ -1,23 +1,10 @@
-# rmts
+## rmts bot
 
-## How to start
+### 如何开始
+1. 克隆项目：`git clone https://github.com/paoka1/rmts_bot`
+2. 安装依赖：`pip install -e .`
+3. 配置环境变量：编辑`.env`
+4. 运行：`nb run`
 
-1. generate project using `nb create` .
-2. create your plugin using `nb plugin create` .
-3. writing your plugins under `rmts/plugins` folder.
-4. run your bot using `nb run --reload` .
-
-## Environment variables
-
-1. DEEPSEEK_API_KEY(Optional)
-2. ONEBOT_ACCESS_TOKEN(Optional)
-3. GREET_AVAILABLE_GROUPS(Optional)
-4. AVLIABLE_CLEAR_HISTORY_GROUPS(Optional)
-5. ROULETTE_AVAILABLE_GROUPS(Optional)
-6. NAPCAT_URL(Unnecessary)
-7. NAPCAT_PORT(Unnecessary)
-8. NAPCAT_TOKEN(Unnecessary)
-
-## Documentation
-
-See [Docs](https://nonebot.dev/)
+### 文档
+[nonebot docs](https://nonebot.dev/)

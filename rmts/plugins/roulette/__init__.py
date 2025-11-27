@@ -2,6 +2,7 @@
 灵感来源：https://github.com/PallasBot/Pallas-Bot
 """
 
+from nonebot import get_driver
 from nonebot.rule import is_type, to_me
 from nonebot.adapters.onebot.v11 import Bot
 from nonebot import on_fullmatch
@@ -10,7 +11,9 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 from .game import RouletteGame
 
-roulette_game = RouletteGame(misfire_prob=0.05)
+config = get_driver().config
+
+roulette_game = RouletteGame(config.roulette_available_groups, misfire_prob=0.05)
 
 roulette_game_handler = on_fullmatch("香香轮盘", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 

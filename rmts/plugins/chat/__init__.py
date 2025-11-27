@@ -14,8 +14,10 @@ from rmts.utils.info import get_nickname
 from .deepseek import RMTSPlugin
 from .clear_history import ClearHistory
 
+config = get_driver().config
+
 # 初始化 deepseek 客户端
-rmts = RMTSPlugin(max_history=100)
+rmts = RMTSPlugin(config.deepseek_api_key, max_history=100)
 rmts.init_client()
 
 # 艾特机器人时触发的聊天响应器
@@ -57,7 +59,7 @@ async def save_chat_history():
 
 
 # 记忆清除
-history_clearer = ClearHistory(rmts)
+history_clearer = ClearHistory(rmts, config.clear_history_available_groups)
 
 clear_history_handler = on_fullmatch("清除记忆", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 

@@ -1,7 +1,8 @@
-import os
 import time
 
 from .deepseek import RMTSPlugin
+
+from rmts.utils.config import split_groups
 
 class Vote:
     
@@ -12,10 +13,10 @@ class Vote:
 
 class ClearHistory:
 
-    def __init__(self, rmts: RMTSPlugin, threshold: int = 3, timeout:int = 60):
+    def __init__(self, rmts: RMTSPlugin, avliable_groups, threshold: int = 3, timeout:int = 60):
         self.rmts = rmts
         self.votes = {}
-        self.avliable_groups = os.getenv("AVLIABLE_CLEAR_HISTORY_GROUPS", "").split(",")
+        self.avliable_groups = split_groups(avliable_groups)
         self.threshold = threshold
         self.timeout = timeout
 

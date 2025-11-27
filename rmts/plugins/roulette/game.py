@@ -1,7 +1,8 @@
-import os
 import random
 
 from enum import Enum, auto
+
+from rmts.utils.config import split_groups
 
 texts = [
     [
@@ -92,10 +93,10 @@ class Game:
 
 class RouletteGame:
 
-    def __init__(self, misfire_prob=0.1):
+    def __init__(self, available_groups, misfire_prob=0.1):
         self.misfire_prob = misfire_prob
         self.groups = {}
-        self.available_groups = os.getenv("ROULETTE_AVAILABLE_GROUPS", "").split(",")
+        self.available_groups = split_groups(available_groups)
         self.ban_duration = 60
 
     def start(self, group_id: int) -> str:

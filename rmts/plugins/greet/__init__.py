@@ -1,16 +1,16 @@
-import os
-
 from nonebot import get_driver
 from nonebot import get_bot
 
 from datetime import datetime
 
 from rmts.utils.action import send_group_msg
+from rmts.utils.config import split_groups
 
-available_groups = os.getenv("GREET_AVAILABLE_GROUPS", "").split(",")
-napcat_url = os.getenv("NAPCAT_URL", "")
-napcat_port = os.getenv("NAPCAT_PORT", "")
-napcat_token = os.getenv("NAPCAT_TOKEN", "")
+config = get_driver().config
+available_groups = split_groups(config.greet_available_groups)
+napcat_url = config.napcat_url
+napcat_port = config.napcat_port
+napcat_token = config.napcat_token
 
 def get_greeting():
     """根据当前时间返回合适的问候语"""
@@ -31,7 +31,7 @@ driver = get_driver()
 
 @driver.on_bot_connect
 async def say_hello():
-    if available_groups == ['']:
+    if available_groups == []:
         return
     greeting = get_greeting()
     bot = get_bot()
