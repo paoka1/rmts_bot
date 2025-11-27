@@ -98,6 +98,7 @@ prompt = """
 class RMTSPlugin:
 
     def __init__(self, key, prompt=prompt, max_history=10):
+        self.client: OpenAI
         self.key = key
         self.prompt = prompt
         self.max_history = max_history
