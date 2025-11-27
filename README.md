@@ -3,7 +3,7 @@
 ### 如何开始
 1. 克隆项目：`git clone https://github.com/paoka1/rmts_bot`
 2. 安装依赖：`pip install -e .`
-3. 配置环境变量：编辑`.env`
+3. 配置环境变量：编辑`.env`，或在环境变量配置相应的键值
 4. 运行：`nb run`
 
 ### 文档
