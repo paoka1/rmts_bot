@@ -1,6 +1,6 @@
 import time
 
-from .deepseek import RMTSPlugin
+from .pool import RMTSPool
 
 from rmts.utils.config import split_groups
 
@@ -25,7 +25,7 @@ class ClearHistory:
     基于投票的清理记忆功能
     """
 
-    def __init__(self, rmts: RMTSPlugin, avliable_groups, threshold: int = 3, timeout:int = 60):
+    def __init__(self, rmts: RMTSPool, avliable_groups, threshold: int = 3, timeout:int = 60):
         self.rmts = rmts
         self.avliable_groups = split_groups(avliable_groups)
         self.votes = {}            # 每个群的投票记录
@@ -65,8 +65,8 @@ class ClearHistory:
             last_votes.append(Vote(group_id, sender_id, time.time()))
             return f"{len(last_votes)}/{self.threshold}"
         
-        self.rmts.clear_history()
+        self.rmts.clear_history(group_id)
         del self.votes[group_id]
 
-        return "boom!"
+        return "指令已执行"
     

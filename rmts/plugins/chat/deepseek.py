@@ -1,5 +1,3 @@
-import os
-
 from openai import OpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
@@ -97,14 +95,16 @@ prompt = """
 
 class RMTSPlugin:
 
-    def __init__(self, key, prompt=prompt, max_history=10):
+    def __init__(self, group_id: int, key: str, prompt=prompt, max_history=10):
         """
         参数：
+            group_id: 群号
             key: OpenAI API 密钥
             prompt: 系统提示语
             max_history: 最大历史消息条数
         """
         self.client: OpenAI
+        self.group_id = group_id
         self.key = key
         self.prompt = prompt
         self.max_history = max_history
@@ -132,8 +132,8 @@ class RMTSPlugin:
         self.messages.append(
             ChatCompletionUserMessageParam(content=user_message, role="user")
             )
-        # 如果历史消息长度超过10条（不包括系统提示），删除最旧的消息
-        while len(self.messages) > self.max_history + 1:  # 1条系统提示 + 10条历史消息
+        # 如果历史消息长度超过限制（不包括系统提示），删除最旧的消息
+        while len(self.messages) > self.max_history + 1:
             # 删除第二条消息（保留系统提示，删除最旧的用户/助手消息）
             self.messages.pop(1)
         # 发起请求
@@ -155,13 +155,13 @@ class RMTSPlugin:
         # 返回响应内容
         return assistant_message
     
-    def save_messages(self, filename: str = "rosmontis_chat.json"):
+    def save_messages(self):
         """保存当前会话的消息历史"""
-        return save_messages_to_file(self.messages, filename)
+        return save_messages_to_file(self.messages, self.group_id)
     
-    def load_messages(self, filename: str = "rosmontis_chat.json"):
+    def load_messages(self):
         """加载消息历史到当前会话"""
-        return load_messages_from_file(filename)
+        return load_messages_from_file(self.group_id)
     
     def clear_history(self):
         """清除当前会话的消息历史，保留系统提示"""

@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from pathlib import Path
 
@@ -8,13 +9,25 @@ from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
 from openai.types.chat import ChatCompletionAssistantMessageParam
 
-def save_messages_to_file(messages, filename: str = "rosmontis_chat.json"):
-    """保存消息历史到用户目录下的隐藏文件夹"""
+def save_messages_to_file(messages, group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
+    """保存消息历史到用户目录下的隐藏文件夹
+    
+    Args:
+        messages: 要保存的消息列表
+        group_id: 群号，用于区分不同群组的聊天记录
+        filename: 基础文件名，如果提供了群号会自动加上群号后缀
+    """
     try:
         # 创建用户目录下的隐藏文件夹
         user_home = Path.home()
         hidden_dir = user_home / ".rmts_chat"
         hidden_dir.mkdir(exist_ok=True)
+        
+        # 根据群号生成文件名
+        if group_id:
+            base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            extension = filename.rsplit('.', 1)[1] if '.' in filename else 'json'
+            filename = f"{base_name}_group_{group_id}.{extension}"
         
         # 完整文件路径
         filepath = hidden_dir / filename
@@ -36,12 +49,27 @@ def save_messages_to_file(messages, filename: str = "rosmontis_chat.json"):
         logger.error(f"保存消息失败: {e}")
         return False
 
-def load_messages_from_file(filename: str = "rosmontis_chat.json"):
-    """从用户目录下的隐藏文件夹加载消息历史"""
+def load_messages_from_file(group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
+    """从用户目录下的隐藏文件夹加载消息历史
+    
+    Args:
+        group_id: 群号，用于区分不同群组的聊天记录
+        filename: 基础文件名，如果提供了群号会自动加上群号后缀
+    
+    Returns:
+        消息列表
+    """
     try:
         # 获取隐藏文件夹路径
         user_home = Path.home()
         hidden_dir = user_home / ".rmts_chat"
+        
+        # 根据群号生成文件名
+        if group_id:
+            base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            extension = filename.rsplit('.', 1)[1] if '.' in filename else 'json'
+            filename = f"{base_name}_group_{group_id}.{extension}"
+        
         filepath = hidden_dir / filename
         
         if not filepath.exists():
