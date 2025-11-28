@@ -13,16 +13,18 @@ from .game import RouletteGame
 
 config = get_driver().config
 
+# 香香轮盘 -> 开始游戏
 roulette_game = RouletteGame(config.roulette_available_groups, misfire_prob=0.05)
 
 roulette_game_handler = on_fullmatch("香香轮盘", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @roulette_game_handler.handle()
 async def handle_roulette_game(bot: Bot, event: GroupMessageEvent):
-    await roulette_game_handler.finish(
-        MessageSegment.reply(event.message_id) + roulette_game.start(event.group_id))
+    text = roulette_game.start(event.group_id)
+    await roulette_game_handler.finish(MessageSegment.reply(event.message_id) + text)
 
 
+# 香香开枪 -> 开枪
 roulette_spin_handler = on_fullmatch("香香开枪", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @roulette_spin_handler.handle()
@@ -33,5 +35,4 @@ async def handle_roulette_spin(bot: Bot, event: GroupMessageEvent):
         await bot.set_group_ban(
             group_id=event.group_id,
             user_id=event.user_id,
-            duration=roulette_game.ban_duration
-        )
+            duration=roulette_game.ban_duration)

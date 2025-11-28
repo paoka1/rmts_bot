@@ -98,6 +98,12 @@ prompt = """
 class RMTSPlugin:
 
     def __init__(self, key, prompt=prompt, max_history=10):
+        """
+        参数：
+            key: OpenAI API 密钥
+            prompt: 系统提示语
+            max_history: 最大历史消息条数
+        """
         self.client: OpenAI
         self.key = key
         self.prompt = prompt
@@ -119,6 +125,9 @@ class RMTSPlugin:
         )
 
     def chat(self, user_message):
+        """
+        LLM 聊天接口
+        """
         # 添加用户消息到历史记录
         self.messages.append(
             ChatCompletionUserMessageParam(content=user_message, role="user")

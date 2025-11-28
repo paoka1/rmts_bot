@@ -38,24 +38,30 @@ texts = [
 ]
 
 class Status(Enum):
-    LOAD = 0
-    MISS1 = auto()
-    MISS2 = auto()
-    MISS3 = auto()
-    MISS4 = auto()
-    MISS5 = auto()
-    FIRE = auto()
-    MISSFIRE = auto()
+    LOAD = 0            # 游戏初始状态
+    MISS1 = auto()      # 第一次空枪
+    MISS2 = auto()      # 第二次空枪
+    MISS3 = auto()      # 第三次空枪
+    MISS4 = auto()      # 第四次空枪
+    MISS5 = auto()      # 第五次空枪
+    FIRE = auto()       # 开枪
+    MISSFIRE = auto()   # 哑火
 
 
 class Texts():
 
     @staticmethod
     def get_text(text_index, status: Status) -> str:
+        """
+        获取指定文本索引和状态对应的文本
+        """
         return texts[text_index][status.value]
     
     @staticmethod
     def get_random_text() -> int:
+        """
+        获取随机文本索引，游戏初始化时调用
+        """
         return random.randint(0, len(texts) - 1)
 
 
@@ -63,12 +69,12 @@ class Game:
 
     def __init__(self, misfire_prob):
         self.status = Status.LOAD
-        self.text_index = Texts.get_random_text()
-        self.revolver = [0, 0, 0, 0, 0, 1]
         self.revolver_index = 0
-        self.misfire_prob = misfire_prob
+        self.text_index = Texts.get_random_text()
+        self.revolver = [0, 0, 0, 0, 0, 1] # 0代表空枪，1代表实弹
+        self.misfire_prob = misfire_prob   # 哑火概率
 
-        random.shuffle(self.revolver)
+        random.shuffle(self.revolver)      # 模拟转轮旋转
     
     def get_round_text(self, round: int) -> str:
         return f" ({round}/6)"
@@ -77,15 +83,18 @@ class Game:
         return Texts.get_text(self.text_index, self.status) + self.get_round_text(round)
     
     def fire(self) -> tuple[str, Status]:
+        """
+        模拟开枪过程，返回文本和当前状态
+        """
         if self.revolver[self.revolver_index] == 1:
-            if random.random() < self.misfire_prob:
+            if random.random() < self.misfire_prob: # 当前转到子弹，判断是否哑火
                 self.status = Status.MISSFIRE
                 round = 6
             else:
                 self.status = Status.FIRE
                 round = -1
         else:
-            self.status = Status(self.status.value + 1)
+            self.status = Status(self.status.value + 1) # 空枪，状态 + 1
             self.revolver_index += 1
             round = self.revolver_index
         return self.get_text(round), self.status
@@ -94,12 +103,20 @@ class Game:
 class RouletteGame:
 
     def __init__(self, available_groups, misfire_prob=0.1):
+        """
+        参数：
+            available_groups: 启用该游戏的群组列表，从配置文件或环境变量读取
+            misfire_prob: 哑火概率
+        """
         self.misfire_prob = misfire_prob
         self.groups = {}
         self.available_groups = split_groups(available_groups)
         self.ban_duration = 60
 
     def start(self, group_id: int) -> str:
+        """
+        开始游戏
+        """
         if str(group_id) not in self.available_groups:
             return "功能未启用"
         if group_id in self.groups:
@@ -108,6 +125,12 @@ class RouletteGame:
         return self.groups[group_id].get_text(0)
     
     def fire(self, group_id: int) -> tuple[str, bool]:
+        """
+        模拟开枪，参数：
+            group_id: 群组ID
+        返回值：
+            tuple[str, bool]: 文本，是否中弹
+        """
         if str(group_id) not in self.available_groups:
             return "功能未启用", False
         if group_id not in self.groups:

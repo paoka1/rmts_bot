@@ -6,6 +6,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 from .weishu import WeiShu
 
+# 关键词判定
 weishu_wait = WeiShu()
 
 weishu_invite_matcher = on_keyword(set(["邀请你加入卫戍协议:盟约【"]), rule=is_type(GroupMessageEvent), priority=2, block=True)
@@ -26,6 +27,7 @@ async def handle_invite(bot: Bot, event: GroupMessageEvent):
     await weishu_invite_matcher.finish(message)
 
 
+# 预约判定
 weishu_wait_matcher = on_fullmatch("预约卫戍", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @weishu_wait_matcher.handle()

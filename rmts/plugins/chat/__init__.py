@@ -29,9 +29,7 @@ async def rmts_chat(event: MessageEvent):
     nickname = event.sender.card if event.sender.card else event.sender.nickname
     message_id = event.message_id
     reply = rmts.chat(f"博士（TA的名字是：{nickname}）对你说：" + text)
-    await chat.finish(
-        MessageSegment.reply(message_id) + f"{reply}"
-    )
+    await chat.finish(MessageSegment.reply(message_id) + f"{reply}")
 
 poke_msgs = ["博士（TA的名字是：{}）戳了戳你",
              "博士（TA的名字是：{}）轻轻地戳了戳你",
@@ -68,6 +66,4 @@ async def handle_clear_history(event: GroupMessageEvent):
     group_id = event.group_id
     sender_id = event.user_id
     reply = history_clearer.try_clear(group_id, sender_id)
-    await clear_history_handler.finish(
-        MessageSegment.reply(event.message_id) + f"{reply}"
-    )
+    await clear_history_handler.finish(MessageSegment.reply(event.message_id) + f"{reply}")

@@ -29,6 +29,7 @@ def get_greeting():
 
 driver = get_driver()
 
+# 连接成功时发送问候语
 @driver.on_bot_connect
 async def say_hello():
     if available_groups == []:
@@ -38,6 +39,7 @@ async def say_hello():
     for group_id in available_groups:
         await bot.send_group_msg(group_id=group_id, message=greeting)
 
+# 断开连接时发送告别语
 # @driver.on_shutdown
 # async def say_goodbye():
 #     if available_groups == ['']:
