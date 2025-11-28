@@ -99,7 +99,7 @@ class RMTSPlugin:
         """
         参数：
             group_id: 群号
-            key: OpenAI API 密钥
+            key: deepseek API 密钥
             prompt: 系统提示语
             max_history: 最大历史消息条数
         """
