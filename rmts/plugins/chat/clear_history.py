@@ -44,5 +44,6 @@ class ClearHistory:
             return f"{len(last_votes)}/{self.threshold}"
         
         self.rmts.clear_history()
+        del self.votes[group_id]
         return "boom!"
     
