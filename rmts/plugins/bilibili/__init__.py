@@ -9,7 +9,7 @@ from .status import Status
 
 global_config = get_driver().config
 plugin_config = Config(**global_config.model_dump())
-status_info = Status(plugin_config.live_subscriptions)
+status_info = Status()
 
 scheduler = require('nonebot_plugin_apscheduler').scheduler
 

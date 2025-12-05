@@ -1,3 +1,7 @@
+"""
+本文件内容为未来更新计划，当前未使用
+"""
+
 from typing import Dict, List
 from enum import Enum, auto
 

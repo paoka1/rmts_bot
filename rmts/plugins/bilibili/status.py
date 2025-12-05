@@ -6,7 +6,7 @@ class Status:
     直播状态管理
     """
 
-    def __init__(self, live_subscriptions: Dict[str, List[str]]):
+    def __init__(self):
         self.live_status: Dict[str, bool] = {}
     
     def get_live_status(self, uid: str) -> bool:
@@ -15,8 +15,10 @@ class Status:
             uid: 用户UID
         返回值：
             bool: 直播状态，True表示直播中，False表示未直播
+
+        默认返回 True，避免已经直播的用户在 bot 重启后重复推送
         """
-        return self.live_status.get(uid, False)
+        return self.live_status.get(uid, True)
     
     def set_live_status(self, uid: str, status: bool):
         """
