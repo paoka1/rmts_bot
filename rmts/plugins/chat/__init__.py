@@ -11,11 +11,11 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from rmts.utils.rule import is_poke_me
 from rmts.utils.info import get_nickname
 
-from .pool import RMTSPool
+from .pool import ModelPool
 from .clear_history import ClearHistory
 
-# 初始化 RMTS 聊天池
-rmts = RMTSPool()
+# 初始化聊天池
+model_pool = ModelPool()
 
 # 艾特机器人时触发的聊天响应器
 chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
@@ -24,7 +24,7 @@ chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
 async def rmts_chat(event: GroupMessageEvent):
     text = event.get_plaintext().strip()
     nickname = event.sender.card if event.sender.card else event.sender.nickname
-    reply = rmts.chat(event.group_id, f"博士（TA的名字是：{nickname}）对你说：" + text)
+    reply = model_pool.chat(event.group_id, f"博士（TA的名字是：{nickname}）对你说：" + text)
     await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
 
 
@@ -44,7 +44,7 @@ async def handle_poke(bot: Bot, event: PokeNotifyEvent):
     text = random.choice(poke_msgs).format(nickname)
     if event.group_id is None: # 私聊戳一戳不回复
         await poke_handler.finish()
-    reply = rmts.chat(event.group_id, text)
+    reply = model_pool.chat(event.group_id, text)
     await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
 
 
@@ -53,12 +53,12 @@ driver = get_driver()
 
 @driver.on_shutdown
 async def save_chat_history():
-    rmts.save_messages()
+    model_pool.save_messages()
 
 
 # 记忆清除
 config = get_driver().config
-history_clearer = ClearHistory(rmts, config.clear_history_available_groups)
+history_clearer = ClearHistory(model_pool, config.clear_history_available_groups)
 
 clear_history_handler = on_fullmatch("清除记忆", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 

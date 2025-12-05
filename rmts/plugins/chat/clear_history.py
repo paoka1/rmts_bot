@@ -1,6 +1,6 @@
 import time
 
-from .pool import RMTSPool
+from .pool import ModelPool
 
 from rmts.utils.config import split_groups
 
@@ -25,8 +25,8 @@ class ClearHistory:
     基于投票的清理记忆功能
     """
 
-    def __init__(self, rmts: RMTSPool, avliable_groups, threshold: int = 3, timeout:int = 60):
-        self.rmts = rmts
+    def __init__(self, model_pool: ModelPool, avliable_groups, threshold: int = 3, timeout:int = 60):
+        self.model_pool = model_pool
         self.avliable_groups = split_groups(avliable_groups)
         self.votes = {}            # 每个群的投票记录
         self.threshold = threshold # 需要的投票数
@@ -65,7 +65,7 @@ class ClearHistory:
             last_votes.append(Vote(group_id, sender_id, time.time()))
             return f"{len(last_votes)}/{self.threshold}"
         
-        self.rmts.clear_history(group_id)
+        self.model_pool.clear_history(group_id)
         del self.votes[group_id]
 
         return "指令已执行"

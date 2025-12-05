@@ -1,15 +1,18 @@
 from nonebot import get_driver
 
-from .deepseek import RMTSPlugin
+from .model import Model
 
-class RMTSPool:
+class ModelPool:
     """
-    创建和管理不同群的 RMTSPlugin 实例
+    创建和管理不同群的 Model 实例
     """
 
     def __init__(self):
-        self.pool: dict[int, RMTSPlugin] = {}
-        self.key = get_driver().config.deepseek_api_key
+        self.pool: dict[int, Model] = {}
+        self.key = get_driver().config.api_key
+        self.base_url = get_driver().config.base_url
+        self.model = get_driver().config.model_name
+        self.max_history_length = get_driver().config.max_history_length
 
     def chat(self, group_id: int, user_message: str) -> str:
         """
@@ -18,9 +21,13 @@ class RMTSPool:
             user_message: 用户发送的消息
         """
         if group_id not in self.pool:
-            rmts = RMTSPlugin(group_id, self.key, max_history=100)
-            rmts.init_client()
-            self.pool[group_id] = rmts
+            model = Model(group_id=group_id,
+                          key=self.key,
+                          base_url=self.base_url,
+                          model=self.model,
+                          max_history=self.max_history_length)
+            model.init_client()
+            self.pool[group_id] = model
         return self.pool[group_id].chat(user_message)
 
     def clear_history(self, group_id: int):
@@ -32,5 +39,5 @@ class RMTSPool:
             self.pool[group_id].clear_history()
 
     def save_messages(self):
-        for rmts in self.pool.values():
-            rmts.save_messages()
+        for model in self.pool.values():
+            model.save_messages()
