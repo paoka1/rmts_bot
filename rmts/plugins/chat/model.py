@@ -68,7 +68,6 @@ class Model:
         response = self.client.chat.completions.create(
                     model=self.model,
                     messages=self.messages,
-                    temperature=1.3,
                     stream=False)
         # 获取助手响应内容
         assistant_message = response.choices[0].message.content or ""
