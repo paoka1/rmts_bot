@@ -107,7 +107,6 @@ class Model:
                 ]
             ))
 
-            call_again = False
             # 执行所有函数调用
             for tool_call in response_message.tool_calls:
                 if not isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
@@ -124,20 +123,18 @@ class Model:
                     function_response = f"函数参数解析错误: {function_args}"
 
                 if function_response:
-                    call_again = True
                     # 添加工具返回结果
                     self.messages.append(ChatCompletionToolMessageParam(
                         role="tool",
                         tool_call_id=tool_call.id,
                         content=function_response
                     ))
-            if call_again:
-                call_again_response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=self.messages,
-                    temperature=1.5,
-                    stream=False)
-                response_message = call_again_response.choices[0].message
+            call_again_response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=self.messages,
+                temperature=1.5,
+                stream=False)
+            response_message = call_again_response.choices[0].message
         else:
             # 没有工具调用，直接使用助手响应
             response_message = response.choices[0].message

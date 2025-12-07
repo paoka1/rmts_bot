@@ -23,7 +23,7 @@ class FunctionDescription:
             name: 函数名称
             description: 函数描述
         说明：
-            默认没有参数和返回值
+            注册的函数必须要有字符串类型的返回值，但参数没有此要求
         """
 
         self.name = name

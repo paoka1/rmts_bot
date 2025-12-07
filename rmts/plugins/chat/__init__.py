@@ -27,7 +27,10 @@ async def rmts_chat(event: GroupMessageEvent):
     nickname = event.sender.card if event.sender.card else event.sender.nickname
     user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）对你说：" + text
     reply = await model_pool.chat(event.group_id, user_message)
-    await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
+    if reply:
+        await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
+    else:
+        await chat.finish()
 
 
 poke_msgs = ["博士（TA的名字是：{}，TA的ID是{}）戳了戳你",
@@ -47,7 +50,10 @@ async def handle_poke(bot: Bot, event: PokeNotifyEvent):
     if event.group_id is None: # 私聊戳一戳不回复
         await poke_handler.finish()
     reply = await model_pool.chat(event.group_id, text)
-    await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
+    if reply:
+        await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
+    else:
+        await poke_handler.finish()
 
 
 # 在程序关闭时保存聊天记录
