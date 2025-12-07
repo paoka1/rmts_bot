@@ -1,15 +1,18 @@
 import os
 import json
+import asyncio
 
 from pathlib import Path
 from importlib import import_module
 from typing import Optional, Dict, Callable
+
 from nonebot.log import logger
 
 class FunctionDescription:
     """
     函数描述类，包含函数的描述信息、参数和返回值信息
     add_parameter 方法用于添加参数
+    add_injection_parameter 方法用于添加注入参数
     add_return 方法用于添加返回值
     to_schema 方法用于将函数描述转换为 function calling 所需的格式
     """
@@ -26,6 +29,7 @@ class FunctionDescription:
         self.name = name
         self.description = description
         self.parameters = {}
+        self.injection_parameters = {}
         self.return_value = None
 
     def add_parameter(self, name: str, param_type: str, description: str, required: bool = False) -> "FunctionDescription":
@@ -42,6 +46,22 @@ class FunctionDescription:
             "type": param_type,
             "description": description,
             "required": required
+        }
+        return self
+    
+    def add_injection_parameter(self, name: str, description: str) -> "FunctionDescription":
+        """
+        添加注入参数，参数：
+            name: 参数名称
+            description: 参数描述
+        返回值：
+            返回函数描述对象本身，支持链式调用
+        说明：
+            此方法用于在function calling中添加不需要用户提供的参数，如果响应中提供了这些参数，则不会被覆盖
+            参数注入使用变量名进行匹配，这些参数由 FunctionCalling 提供
+        """
+        self.injection_parameters[name] = {
+            "description": description
         }
         return self
     
@@ -149,16 +169,18 @@ class FunctionCalling:
     to_schemas 方法用于获取所有函数的 Function Calling 描述
     """
 
-    def __init__(self, function_container: FunctionContainer):
+    def __init__(self, function_container: FunctionContainer, injection_params: Dict[str, str] = {}):
         """
         参数：
             function_container: 全局唯一的函数容器实例
+            injection_params: 全局注入参数，名称: 值
         """
 
         self.functions: Dict[str, Callable] = function_container.functions
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
+        self.injection_params: Dict[str, str] = injection_params
     
-    def call(self, name: str, args: dict) -> Optional[str]:
+    async def call(self, name: str, args: dict) -> Optional[str]:
         """
         调用函数
 
@@ -171,8 +193,22 @@ class FunctionCalling:
         """
         if name not in self.functions:
             return f"函数 {name} 不存在"
+        
+        # 注入参数
+        fd = self.function_descriptions[name]
+        for inj_name in fd.injection_parameters:
+            if inj_name not in args: # 注入那些没有被提供的参数
+                args[inj_name] = self.injection_params[inj_name]
+
+        logger.info(f"调用函数 {name}，参数: {args}")
+        
+        func = self.functions[name]
         try:
-            return self.functions[name](**args)
+            # 检测是否为协程函数
+            if asyncio.iscoroutinefunction(func):
+                return await func(**args)
+            else:
+                return func(**args)
         except Exception as e:
             return f"函数调用出错: {e}"
         

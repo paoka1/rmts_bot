@@ -22,22 +22,26 @@ class ModelPool:
         self.model = get_driver().config.model_name
         self.max_history_length = get_driver().config.max_history_length
 
-    def chat(self, group_id: int, user_message: str) -> str:
+    async def chat(self, group_id: int, user_message: str) -> str:
         """
         参数：
             group_id: 群号
             user_message: 用户发送的消息
         """
+
         if group_id not in self.pool:
+            injection_params = {"group_id": str(group_id)}
+            function_calling = FunctionCalling(self.function_container, injection_params)
+
             model = Model(group_id=group_id,
-                          fc=FunctionCalling(self.function_container),
+                          fc=function_calling,
                           key=self.key,
                           base_url=self.base_url,
                           model=self.model,
                           max_history=self.max_history_length)
             model.init_client()
             self.pool[group_id] = model
-        return self.pool[group_id].chat(user_message)
+        return await self.pool[group_id].chat(user_message)
 
     def clear_history(self, group_id: int):
         """

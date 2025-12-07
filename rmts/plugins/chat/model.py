@@ -1,6 +1,6 @@
 import json
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
 from openai.types.chat import ChatCompletionAssistantMessageParam
@@ -36,7 +36,7 @@ class Model:
             max_history: 最大历史消息条数
         """
 
-        self.client: OpenAI
+        self.client: AsyncOpenAI
         self.group_id = group_id
         self.fc = fc
         self.key = key
@@ -58,12 +58,12 @@ class Model:
             self.messages = messages
 
     def init_client(self) -> None:
-        self.client = OpenAI(
+        self.client = AsyncOpenAI(
             api_key=self.key,
             base_url=self.base_url
         )
 
-    def chat(self, user_message) -> str:
+    async def chat(self, user_message) -> str:
         """
         LLM 聊天接口
         """
@@ -79,7 +79,7 @@ class Model:
             self.messages = [self.messages[0]] + self.messages[-(self.max_history):]
 
         # 发起请求
-        response = self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
                     model=self.model,
                     messages=self.messages,
                     temperature=1.5,
@@ -119,7 +119,7 @@ class Model:
                 try:
                     args_dict = json.loads(function_args)
                     # 调用函数并获取结果
-                    function_response = self.fc.call(function_name, args_dict)
+                    function_response = await self.fc.call(function_name, args_dict)
                 except json.JSONDecodeError:
                     function_response = f"函数参数解析错误: {function_args}"
 
@@ -132,7 +132,7 @@ class Model:
                         content=function_response
                     ))
             if call_again:
-                call_again_response = self.client.chat.completions.create(
+                call_again_response = await self.client.chat.completions.create(
                     model=self.model,
                     messages=self.messages,
                     temperature=1.5,
