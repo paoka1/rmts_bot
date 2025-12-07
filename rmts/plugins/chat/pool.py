@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 from nonebot import get_driver
 
@@ -18,6 +19,7 @@ class ModelPool:
 
         self.function_container = function_container
         self.pool: dict[int, Model] = {}
+        self.locks: dict[int, asyncio.Lock] = {}  # 每个群组一个锁
         self.key = get_driver().config.api_key
         self.base_url = get_driver().config.base_url
         self.model = get_driver().config.model_name
@@ -29,20 +31,25 @@ class ModelPool:
             group_id: 群号
             user_message: 用户发送的消息
         """
+        # 确保该群组有对应的锁
+        if group_id not in self.locks:
+            self.locks[group_id] = asyncio.Lock()
+        
+        # 使用锁确保同一群组的消息顺序处理
+        async with self.locks[group_id]:
+            if group_id not in self.pool:
+                injection_params = {"group_id": str(group_id)}
+                function_calling = FunctionCalling(self.function_container, injection_params)
 
-        if group_id not in self.pool:
-            injection_params = {"group_id": str(group_id)}
-            function_calling = FunctionCalling(self.function_container, injection_params)
-
-            model = Model(group_id=group_id,
-                          fc=function_calling,
-                          key=self.key,
-                          base_url=self.base_url,
-                          model=self.model,
-                          max_history=self.max_history_length)
-            model.init_client()
-            self.pool[group_id] = model
-        return await self.pool[group_id].chat(user_message)
+                model = Model(group_id=group_id,
+                              fc=function_calling,
+                              key=self.key,
+                              base_url=self.base_url,
+                              model=self.model,
+                              max_history=self.max_history_length)
+                model.init_client()
+                self.pool[group_id] = model
+            return await self.pool[group_id].chat(user_message)
 
     def clear_history(self, group_id: int):
         """
