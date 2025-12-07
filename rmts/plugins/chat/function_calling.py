@@ -1,7 +1,10 @@
 import os
 import json
 
+from pathlib import Path
+from importlib import import_module
 from typing import Optional, Dict, Callable
+from nonebot.log import logger
 
 class FunctionDescription:
     """
@@ -91,19 +94,23 @@ class FunctionContainer:
     全局唯一的函数调用管理容器，用于注册和存储所有可用的函数
     """
 
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: str = "functions"):
         """
         参数：
-            path: 函数文件路径，默认为 None，表示使用当前文件所在目录下的 'function_calling' 文件夹
+            path: 存放函数的路径，默认为 "functions"
+        说明：
+            此路径应位于本文件所在目录下
         """
 
+        self.path = path
+        self.excluded_paths = ["__pycache__"]
         self.functions: Dict[str, Callable] = {}
         self.function_descriptions: Dict[str, FunctionDescription] = {}
 
-        if path is None:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            path = os.path.join(current_dir, 'function_calling')
-        self.path = path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.fullpath = os.path.join(current_dir, Path(self.path))
+
+        logger.info(f"从{self.fullpath}加载function calling函数")
     
     def function_calling(self, function_description: FunctionDescription) -> Callable:
         """
@@ -122,8 +129,15 @@ class FunctionContainer:
         从指定路径加载所有注册的函数
         """
 
-        # todo: 实现从文件加载函数的逻辑
-        pass
+        for dir in Path(self.fullpath).iterdir():
+            if dir.is_dir() and dir.name not in self.excluded_paths:
+                module_path = f"{__package__}.{self.path}.{dir.name}"
+                logger.info(f"正在加载函数模块: {module_path}")
+                import_module(module_path)
+
+        logger.info("function calling 函数加载完成")
+        function_names = [self.function_descriptions[name].name for name in self.function_descriptions]
+        logger.info(f"已完成以下函数的加载注册：{function_names}")
 
 
 class FunctionCalling:
@@ -133,13 +147,12 @@ class FunctionCalling:
     to_schemas 方法用于获取所有函数的 Function Calling 描述
     """
 
-    def __init__(self, group_id: int, function_container: FunctionContainer):
+    def __init__(self, function_container: FunctionContainer):
         """
         参数：
-            group_id: 组ID
+            function_container: 全局唯一的函数容器实例
         """
 
-        self.group_id = group_id
         self.functions: Dict[str, Callable] = function_container.functions
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
     
@@ -152,7 +165,7 @@ class FunctionCalling:
             args: 函数参数
 
         返回：
-            dict: 函数调用结果
+            str: 函数调用结果
         """
         if name not in self.functions:
             return f"函数 {name} 不存在"
@@ -176,32 +189,3 @@ class FunctionCalling:
 function_container = FunctionContainer()
 # 加载所有注册的函数
 function_container.load_functions()
-
-if __name__ == "__main__":
-    func_desc_add = FunctionDescription(name="add", description="Add two numbers")
-    func_desc_add.add_parameter(name="a", param_type="number", description="First number", required=True)
-    func_desc_add.add_parameter(name="b", param_type="number", description="Second number", required=True)
-    func_desc_add.add_return(name="result", description="The sum of a and b")
-
-    @function_container.function_calling(func_desc_add)
-    def add(a: float, b: float) -> str:
-        return str(a + b)
-    
-    func_desc_time = FunctionDescription(name="get_current_time", description="Get the current system time")
-    func_desc_time.add_return(name="current_time", description="The current system time as a string")
-
-    @function_container.function_calling(func_desc_time)
-    def get_current_time() -> str:
-        from datetime import datetime
-        return datetime.now().isoformat()
-
-    function_calling = FunctionCalling(group_id=1, function_container=function_container)
-
-    result = function_calling.call("add", {"a": 5, "b": 3})
-    print(f"Function call result: {result}")  # 输出: Function call result: 8.0
-
-    result = function_calling.call("get_current_time", {})
-    print(f"Function call result: {result}")  # 输出现在的时间
-
-    print("Function schemas:")
-    print(function_calling.to_schemas())

@@ -13,6 +13,7 @@ from rmts.utils.info import get_nickname
 
 from .pool import ModelPool
 from .clear_history import ClearHistory
+from .function_calling import function_container, FunctionContainer
 
 # 初始化聊天池
 model_pool = ModelPool()
