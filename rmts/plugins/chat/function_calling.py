@@ -4,7 +4,7 @@ import asyncio
 
 from pathlib import Path
 from importlib import import_module
-from typing import Optional, Dict, Callable
+from typing import Dict, Callable
 
 from nonebot.log import logger
 
@@ -180,7 +180,7 @@ class FunctionCalling:
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
         self.injection_params: Dict[str, str] = injection_params
     
-    async def call(self, name: str, args: dict) -> Optional[str]:
+    async def call(self, name: str, args: dict) -> str:
         """
         调用函数
 

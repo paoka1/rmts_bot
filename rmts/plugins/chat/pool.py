@@ -1,3 +1,4 @@
+from typing import Optional
 from nonebot import get_driver
 
 from .model import Model
@@ -22,7 +23,7 @@ class ModelPool:
         self.model = get_driver().config.model_name
         self.max_history_length = get_driver().config.max_history_length
 
-    async def chat(self, group_id: int, user_message: str) -> str:
+    async def chat(self, group_id: int, user_message: str) -> Optional[str]:
         """
         参数：
             group_id: 群号

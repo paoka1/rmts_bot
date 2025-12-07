@@ -7,7 +7,7 @@ from openai.types.chat import ChatCompletionAssistantMessageParam
 from openai.types.chat import ChatCompletionToolMessageParam
 from openai.types.chat import ChatCompletionMessageFunctionToolCall
 
-from typing import List, Union
+from typing import List, Union, Optional
 
 from .history import save_messages_to_file, load_messages_from_file
 from .prompt import prompt
@@ -63,7 +63,7 @@ class Model:
             base_url=self.base_url
         )
 
-    async def chat(self, user_message) -> str:
+    async def chat(self, user_message) -> Optional[str]:
         """
         LLM 聊天接口
         """
@@ -122,13 +122,12 @@ class Model:
                 except json.JSONDecodeError:
                     function_response = f"函数参数解析错误: {function_args}"
 
-                if function_response:
-                    # 添加工具返回结果
-                    self.messages.append(ChatCompletionToolMessageParam(
-                        role="tool",
-                        tool_call_id=tool_call.id,
-                        content=function_response
-                    ))
+                # 添加工具返回结果
+                self.messages.append(ChatCompletionToolMessageParam(
+                    role="tool",
+                    tool_call_id=tool_call.id,
+                    content=function_response
+                ))
             call_again_response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=self.messages,
@@ -145,8 +144,7 @@ class Model:
             )
 
         # 返回响应内容
-        response_content = response_message.content if response_message.content else ""
-        return response_content
+        return response_message.content
     
     def save_messages(self):
         """保存当前会话的消息历史"""
