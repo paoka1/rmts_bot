@@ -13,10 +13,10 @@ from rmts.utils.info import get_nickname
 
 from .pool import ModelPool
 from .clear_history import ClearHistory
-from .function_calling import function_container, FunctionContainer
+from .function_calling import function_container
 
 # 初始化聊天池
-model_pool = ModelPool()
+model_pool = ModelPool(function_container)
 
 # 艾特机器人时触发的聊天响应器
 chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)

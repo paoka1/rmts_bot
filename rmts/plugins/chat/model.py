@@ -1,18 +1,24 @@
+import json
+
 from openai import OpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
 from openai.types.chat import ChatCompletionAssistantMessageParam
+from openai.types.chat import ChatCompletionToolMessageParam
+from openai.types.chat import ChatCompletionMessageFunctionToolCall
 
 from typing import List, Union
 
 from .history import save_messages_to_file, load_messages_from_file
 from .prompt import prompt
+from .function_calling import FunctionCalling
 
 class Model:
 
     def __init__(self,
                  *,
                  group_id: int,
+                 fc: FunctionCalling,
                  key: str,
                  base_url: str = "https://api.deepseek.com",
                  model: str = "deepseek-chat",
@@ -22,6 +28,7 @@ class Model:
         """
         参数：
             group_id: 群号
+            fc: 函数调用管理器
             key: deepseek API 密钥
             base_url: API 基础 URL
             model: 使用的模型名称
@@ -31,12 +38,16 @@ class Model:
 
         self.client: OpenAI
         self.group_id = group_id
+        self.fc = fc
         self.key = key
         self.base_url = base_url
         self.model = model
         self.prompt = prompt
         self.max_history = max_history
-        self.messages: List[Union[ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam, ChatCompletionAssistantMessageParam]] = []
+        self.messages: List[Union[ChatCompletionSystemMessageParam,
+                                  ChatCompletionUserMessageParam,
+                                  ChatCompletionAssistantMessageParam,
+                                  ChatCompletionToolMessageParam]] = []
 
         # 读取历史消息
         messages = self.load_messages()
@@ -46,41 +57,99 @@ class Model:
         else:
             self.messages = messages
 
-    def init_client(self):
+    def init_client(self) -> None:
         self.client = OpenAI(
             api_key=self.key,
             base_url=self.base_url
         )
 
-    def chat(self, user_message):
+    def chat(self, user_message) -> str:
         """
         LLM 聊天接口
         """
+
         # 添加用户消息到历史记录
         self.messages.append(
             ChatCompletionUserMessageParam(content=user_message, role="user")
             )
+        
         # 如果历史消息长度超过限制（不包括系统提示），删除最旧的消息
-        while len(self.messages) > self.max_history + 1:
-            # 删除第二条消息（保留系统提示，删除最旧的用户/助手消息）
-            self.messages.pop(1)
+        if len(self.messages) > self.max_history + 1:
+            # 保留系统提示（第一条）和最新的 max_history 条消息
+            self.messages = [self.messages[0]] + self.messages[-(self.max_history):]
+
         # 发起请求
         response = self.client.chat.completions.create(
                     model=self.model,
                     messages=self.messages,
                     temperature=1.5,
+                    tools=self.fc.to_schemas(),
+                    tool_choice="auto",
                     stream=False)
         # 获取助手响应内容
-        assistant_message = response.choices[0].message.content or ""
+        response_message = response.choices[0].message
+
+        if response_message.tool_calls:
+            self.messages.append(ChatCompletionAssistantMessageParam(
+                role="assistant",
+                content=response_message.content,
+                tool_calls=[
+                    {
+                        "id": tool_call.id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments
+                        }
+                    }
+                    for tool_call in response_message.tool_calls
+                    if isinstance(tool_call, ChatCompletionMessageFunctionToolCall)
+                ]
+            ))
+
+            call_again = False
+            # 执行所有函数调用
+            for tool_call in response_message.tool_calls:
+                if not isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
+                    continue
+
+                function_name = tool_call.function.name
+                function_args = tool_call.function.arguments
+
+                try:
+                    args_dict = json.loads(function_args)
+                    # 调用函数并获取结果
+                    function_response = self.fc.call(function_name, args_dict)
+                except json.JSONDecodeError:
+                    function_response = f"函数参数解析错误: {function_args}"
+
+                if function_response:
+                    call_again = True
+                    # 添加工具返回结果
+                    self.messages.append(ChatCompletionToolMessageParam(
+                        role="tool",
+                        tool_call_id=tool_call.id,
+                        content=function_response
+                    ))
+            if call_again:
+                call_again_response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=self.messages,
+                    temperature=1.5,
+                    stream=False)
+                response_message = call_again_response.choices[0].message
+        else:
+            # 没有工具调用，直接使用助手响应
+            response_message = response.choices[0].message
+
         # 将助手响应添加到历史记录
         self.messages.append(ChatCompletionAssistantMessageParam(
-            content=assistant_message, role="assistant")
+            content=response_message.content, role="assistant")
             )
-        # 再次检查消息长度限制
-        while len(self.messages) > self.max_history + 1:
-            self.messages.pop(1)
+
         # 返回响应内容
-        return assistant_message
+        response_content = response_message.content if response_message.content else ""
+        return response_content
     
     def save_messages(self):
         """保存当前会话的消息历史"""

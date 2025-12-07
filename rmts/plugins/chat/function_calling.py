@@ -60,9 +60,9 @@ class FunctionDescription:
         """
         将当前函数描述转换为 function calling 所需的格式
         """
+        
         props = {}
         required_list = []
-
         # 遍历参数
         for name, info in self.parameters.items():
             props[name] = {
@@ -71,21 +71,24 @@ class FunctionDescription:
             }
             if info.get("required"):
                 required_list.append(name)
-
-        # 构建最终 schema
+        
+        # 构建参数 schema
+        parameters_schema = {
+            "type": "object",
+            "properties": props,
+        }
+        if required_list:
+            parameters_schema["required"] = required_list
+        
+        # 构建完整的工具 schema（包含 type 字段）
         schema = {
-            "name": self.name,
-            "description": self.description,
-            "parameters": {
-                "type": "object",
-                "properties": props,
+            "type": "function",  # ← 添加这个
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": parameters_schema
             }
         }
-
-        # 只在有 required 时加入 required 字段
-        if required_list:
-            schema["parameters"]["required"] = required_list
-
         return schema
 
 
@@ -139,7 +142,6 @@ class FunctionContainer:
         function_names = [self.function_descriptions[name].name for name in self.function_descriptions]
         logger.info(f"已完成以下函数的加载注册：{function_names}")
 
-
 class FunctionCalling:
     """
     为每个不同的聊天上下文使用的函数调用管理器
@@ -174,7 +176,7 @@ class FunctionCalling:
         except Exception as e:
             return f"函数调用出错: {e}"
         
-    def to_schemas(self) -> str:
+    def to_schemas_str(self) -> str:
         """
         获取所有函数的 Function Calling 描述
         """
@@ -183,6 +185,15 @@ class FunctionCalling:
             for fd in self.function_descriptions.values()
         ]
         return json.dumps(functions, ensure_ascii=False, indent=2)
+    
+    def to_schemas(self) -> list:
+        """
+        获取所有函数的 Function Calling 描述
+        """
+        return [
+            fd.to_schema()
+            for fd in self.function_descriptions.values()
+        ]
 
 
 # 全局唯一的函数容器实例

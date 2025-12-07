@@ -8,14 +8,15 @@ from nonebot.log import logger
 from openai.types.chat import ChatCompletionSystemMessageParam
 from openai.types.chat import ChatCompletionUserMessageParam
 from openai.types.chat import ChatCompletionAssistantMessageParam
+from openai.types.chat import ChatCompletionToolMessageParam
 
 def save_messages_to_file(messages, group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
     """保存消息历史到用户目录下的隐藏文件夹
     
     Args:
         messages: 要保存的消息列表
-        group_id: 群号，用于区分不同群组的聊天记录
-        filename: 基础文件名，如果提供了群号会自动加上群号后缀
+        group_id: 群号,用于区分不同群组的聊天记录
+        filename: 基础文件名,如果提供了群号会自动加上群号后缀
     """
     try:
         # 创建用户目录下的隐藏文件夹
@@ -35,10 +36,20 @@ def save_messages_to_file(messages, group_id: Optional[int] = None, filename: st
         # 将消息转换为可序列化的格式
         serializable_messages = []
         for msg in messages:
-            serializable_messages.append({
+            msg_dict = {
                 "role": msg["role"],
-                "content": msg["content"]
-            })
+                "content": msg.get("content")
+            }
+            
+            # 处理 assistant 消息的 tool_calls
+            if msg["role"] == "assistant" and "tool_calls" in msg:
+                msg_dict["tool_calls"] = msg["tool_calls"]
+            
+            # 处理 tool 消息的 tool_call_id
+            if msg["role"] == "tool" and "tool_call_id" in msg:
+                msg_dict["tool_call_id"] = msg["tool_call_id"]
+            
+            serializable_messages.append(msg_dict)
         
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(serializable_messages, f, ensure_ascii=False, indent=2)
@@ -53,8 +64,8 @@ def load_messages_from_file(group_id: Optional[int] = None, filename: str = "ros
     """从用户目录下的隐藏文件夹加载消息历史
     
     Args:
-        group_id: 群号，用于区分不同群组的聊天记录
-        filename: 基础文件名，如果提供了群号会自动加上群号后缀
+        group_id: 群号,用于区分不同群组的聊天记录
+        filename: 基础文件名,如果提供了群号会自动加上群号后缀
     
     Returns:
         消息列表
@@ -83,14 +94,23 @@ def load_messages_from_file(group_id: Optional[int] = None, filename: str = "ros
         messages = []
         for msg_data in data:
             role = msg_data["role"]
-            content = msg_data["content"]
+            content = msg_data.get("content")
             
             if role == "system":
                 messages.append(ChatCompletionSystemMessageParam(content=content, role="system"))
             elif role == "user":
                 messages.append(ChatCompletionUserMessageParam(content=content, role="user"))
             elif role == "assistant":
-                messages.append(ChatCompletionAssistantMessageParam(content=content, role="assistant"))
+                msg_param = ChatCompletionAssistantMessageParam(content=content, role="assistant")
+                if "tool_calls" in msg_data:
+                    msg_param["tool_calls"] = msg_data["tool_calls"]
+                messages.append(msg_param)
+            elif role == "tool":
+                messages.append(ChatCompletionToolMessageParam(
+                    role="tool",
+                    tool_call_id=msg_data["tool_call_id"],
+                    content=content
+                ))
         
         logger.info(f"消息已从 {filepath} 加载")
         return messages
