@@ -4,14 +4,14 @@ import asyncio
 
 from pathlib import Path
 from importlib import import_module
-from typing import Dict, Callable
+from typing import Dict, Callable, List
 
 from nonebot.log import logger
 
 class FunctionDescription:
     """
     函数描述类，包含函数的描述信息、参数和返回值信息
-    add_parameter 方法用于添加参数
+    add_str_parameter 方法用于添加字符串参数
     add_injection_parameter 方法用于添加注入参数
     add_return 方法用于添加返回值
     to_schema 方法用于将函数描述转换为 function calling 所需的格式
@@ -28,11 +28,12 @@ class FunctionDescription:
 
         self.name = name
         self.description = description
-        self.parameters = {}
+        self.str_parameters = {}
+        self.enum_parameters = {}
         self.injection_parameters = {}
         self.return_value = None
 
-    def add_parameter(self, name: str, param_type: str, description: str, required: bool = False) -> "FunctionDescription":
+    def add_str_parameter(self, name: str, param_type: str, description: str, required: bool = False) -> "FunctionDescription":
         """
         添加参数，参数：
             name: 参数名称
@@ -42,9 +43,25 @@ class FunctionDescription:
         返回值：
             返回函数描述对象本身，支持链式调用
         """
-        self.parameters[name] = {
+        self.str_parameters[name] = {
             "type": param_type,
             "description": description,
+            "required": required
+        }
+        return self
+    
+    def add_enum_parameter(self, name: str, description: str, enum_values: List[str], required: bool = False) -> "FunctionDescription":
+        """
+        添加枚举参数，参数：
+            name: 参数名称
+            description: 参数描述
+            enum_values: 枚举值列表
+            required: 是否必需
+        """
+        self.enum_parameters[name] = {
+            "type": "string",
+            "description": description,
+            "enum": enum_values,
             "required": required
         }
         return self
@@ -82,11 +99,22 @@ class FunctionDescription:
         """
         props = {}
         required_list = []
-        # 遍历参数
-        for name, info in self.parameters.items():
+        
+        # 遍历字符串参数
+        for name, info in self.str_parameters.items():
             props[name] = {
                 "type": info["type"],
                 "description": info["description"]
+            }
+            if info.get("required"):
+                required_list.append(name)
+        
+        # 遍历枚举参数
+        for name, info in self.enum_parameters.items():
+            props[name] = {
+                "type": info["type"],
+                "description": info["description"],
+                "enum": info["enum"]
             }
             if info.get("required"):
                 required_list.append(name)
@@ -179,6 +207,7 @@ class FunctionCalling:
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
         self.injection_params: Dict[str, str] = injection_params
 
+        # debug 使用
         # logger.info(f"function tools str: \n{self.to_schemas_str()}\n")
     
     async def call(self, name: str, args: dict) -> str:
