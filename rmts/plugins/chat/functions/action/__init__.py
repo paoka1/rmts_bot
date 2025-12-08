@@ -40,6 +40,6 @@ async def send_sticker(type: str, group_id: int) -> str:
     await bot.call_api(
         "send_group_msg",
         group_id=group_id,
-        message={"type": "image", "data": {"file": str(sticker_path)}}
+        message={"type": "image", "data": {"file": "file://" + str(sticker_path)}}
     )
     return f"已发送表情包 {type}"
