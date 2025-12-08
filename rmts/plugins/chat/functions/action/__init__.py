@@ -27,6 +27,7 @@ from rmts.plugins.chat.functions.action.send_sticker import SendSticker
 send_sticker_util = SendSticker()
 func_desc_send_sticker = FunctionDescription(name="send_sticker",description="发送指定表情包")
 func_desc_send_sticker.add_enum_parameter(name="type", description="表情包类型", enum_values=send_sticker_util.get_sticker_list(), required=True)
+func_desc_send_sticker.add_injection_parameter(name="group_id", description="群组的唯一标识符")
 func_desc_send_sticker.add_return(name="result", description="操作结果")
 
 @function_container.function_calling(func_desc_send_sticker)
