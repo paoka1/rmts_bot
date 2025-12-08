@@ -55,7 +55,7 @@ async def save_messages_to_file(messages, group_id: Optional[int] = None, filena
         async with aiofiles.open(filepath, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(serializable_messages, ensure_ascii=False, indent=2))
         
-        logger.info(f"消息已保存到: {filepath}")
+        logger.success(f"消息已保存到: {filepath}")
         return True
     except Exception as e:
         logger.error(f"保存消息失败: {e}")
@@ -105,7 +105,7 @@ async def load_messages_from_file(group_id: Optional[int] = None, filename: str 
                     content=content
                 ))
         
-        logger.info(f"消息已从 {filepath} 加载")
+        logger.success(f"消息已从 {filepath} 加载")
         return messages
     except Exception as e:
         logger.error(f"加载消息失败: {e}")
@@ -139,7 +139,7 @@ def delete_messages_file(group_id: Optional[int] = None, filename: str = "rosmon
             return False
         
         filepath.unlink()
-        logger.info(f"消息历史已删除: {filepath}")
+        logger.success(f"消息历史已删除: {filepath}")
         return True
     except Exception as e:
         logger.error(f"删除消息历史失败: {e}")

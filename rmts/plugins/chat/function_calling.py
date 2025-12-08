@@ -157,7 +157,7 @@ class FunctionContainer:
                 logger.info(f"正在加载函数模块: {module_path}")
                 import_module(module_path)
 
-        logger.info("function calling 函数加载完成")
+        logger.success("function calling 函数加载完成")
         function_names = [self.function_descriptions[name].name for name in self.function_descriptions]
         logger.info(f"已完成以下函数的加载注册：{function_names}")
 
@@ -178,6 +178,8 @@ class FunctionCalling:
         self.functions: Dict[str, Callable] = function_container.functions
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
         self.injection_params: Dict[str, str] = injection_params
+
+        # logger.info(f"function tools str: \n{self.to_schemas_str()}\n")
     
     async def call(self, name: str, args: dict) -> str:
         """
