@@ -32,7 +32,7 @@ class ClearHistory:
         self.threshold = threshold # 需要的投票数
         self.timeout = timeout     # 投票超时时间，单位秒
 
-    def try_clear(self, group_id: int, sender_id: int) -> str:
+    async def try_clear(self, group_id: int, sender_id: int) -> str:
         """
         参数：
             group_id: 群号
@@ -65,7 +65,7 @@ class ClearHistory:
             last_votes.append(Vote(group_id, sender_id, time.time()))
             return f"{len(last_votes)}/{self.threshold}"
         
-        self.model_pool.clear_history(group_id)
+        await self.model_pool.clear_history(group_id)
         del self.votes[group_id]
 
         return "指令已执行"

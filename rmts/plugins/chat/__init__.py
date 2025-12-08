@@ -61,7 +61,7 @@ driver = get_driver()
 
 @driver.on_shutdown
 async def save_chat_history():
-    model_pool.save_messages()
+    await model_pool.save_messages()
 
 
 # 记忆清除
@@ -74,5 +74,5 @@ clear_history_handler = on_fullmatch("清除记忆", rule=to_me() & is_type(Grou
 async def handle_clear_history(event: GroupMessageEvent):
     group_id = event.group_id
     sender_id = event.user_id
-    reply = history_clearer.try_clear(group_id, sender_id)
+    reply = await history_clearer.try_clear(group_id, sender_id)
     await clear_history_handler.finish(MessageSegment.reply(event.message_id) + f"{reply}")

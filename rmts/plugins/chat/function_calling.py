@@ -101,7 +101,7 @@ class FunctionDescription:
         
         # 构建完整的工具 schema（包含 type 字段）
         schema = {
-            "type": "function",  # ← 添加这个
+            "type": "function",
             "function": {
                 "name": self.name,
                 "description": self.description,

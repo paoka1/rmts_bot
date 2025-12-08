@@ -5,6 +5,7 @@ from nonebot import get_driver
 from .model import Model
 from .function_calling import FunctionContainer
 from .function_calling import FunctionCalling
+from .history import delete_messages_file
 
 class ModelPool:
     """
@@ -51,14 +52,29 @@ class ModelPool:
                 self.pool[group_id] = model
             return await self.pool[group_id].chat(user_message)
 
-    def clear_history(self, group_id: int):
+    async def clear_history(self, group_id: int):
         """
         参数：
             group_id: 群号
         """
-        if group_id in self.pool:
-            self.pool[group_id].clear_history()
+        if group_id not in self.locks:
+            self.locks[group_id] = asyncio.Lock()
+        
+        async with self.locks[group_id]:
+            if group_id in self.pool:
+                # Model 已加载,清空内存中的历史记录
+                self.pool[group_id].clear_history()
+            else:
+                # Model 未加载,直接删除磁盘文件
+                delete_messages_file(group_id)
 
-    def save_messages(self):
-        for model in self.pool.values():
-            model.save_messages()
+    async def save_messages(self):
+        """
+        保存所有群组的消息历史
+        """
+        # 为所有群组的保存操作加锁
+        for group_id, model in self.pool.items():
+            if group_id not in self.locks:
+                self.locks[group_id] = asyncio.Lock()
+            async with self.locks[group_id]:
+                model.save_messages()

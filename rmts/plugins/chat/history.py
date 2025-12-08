@@ -117,3 +117,37 @@ def load_messages_from_file(group_id: Optional[int] = None, filename: str = "ros
     except Exception as e:
         logger.error(f"加载消息失败: {e}")
         return []
+
+def delete_messages_file(group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
+    """删除指定群组的消息历史文件
+    
+    Args:
+        group_id: 群号,用于区分不同群组的聊天记录
+        filename: 基础文件名,如果提供了群号会自动加上群号后缀
+    
+    Returns:
+        bool: 删除成功返回 True,文件不存在或删除失败返回 False
+    """
+    try:
+        # 获取隐藏文件夹路径
+        user_home = Path.home()
+        hidden_dir = user_home / ".rmts_chat"
+        
+        # 根据群号生成文件名
+        if group_id:
+            base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+            extension = filename.rsplit('.', 1)[1] if '.' in filename else 'json'
+            filename = f"{base_name}_group_{group_id}.{extension}"
+        
+        filepath = hidden_dir / filename
+        
+        if not filepath.exists():
+            logger.warning(f"文件 {filepath} 不存在,无需删除")
+            return False
+        
+        filepath.unlink()
+        logger.info(f"消息历史已删除: {filepath}")
+        return True
+    except Exception as e:
+        logger.error(f"删除消息历史失败: {e}")
+        return False
