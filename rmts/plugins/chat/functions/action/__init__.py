@@ -1,7 +1,9 @@
 """
 和交互动作有关的函数调用功能
 """
+
 from nonebot import get_bot
+from nonebot.adapters.onebot.v11 import MessageSegment
 
 from rmts.plugins.chat.function_calling import FunctionDescription, function_container
 
@@ -33,13 +35,13 @@ func_desc_send_sticker.add_return(name="result", description="操作结果")
 @function_container.function_calling(func_desc_send_sticker)
 async def send_sticker(type: str, group_id: int) -> str:
     bot = get_bot()
-    sticker_path = send_sticker_util.get_sticker_path(type)
-    if sticker_path is None:
+    sticker_bytes = send_sticker_util.get_sticker_bytes(type)
+    if sticker_bytes is None:
         return f"表情包 {type} 不存在"
     
     await bot.call_api(
         "send_group_msg",
         group_id=group_id,
-        message={"type": "image", "data": {"file": "file://" + str(sticker_path)}}
+        message=MessageSegment.image(file=sticker_bytes)
     )
     return f"已发送表情包 {type}"
