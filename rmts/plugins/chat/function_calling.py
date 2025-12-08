@@ -57,8 +57,8 @@ class FunctionDescription:
         返回值：
             返回函数描述对象本身，支持链式调用
         说明：
-            此方法用于在function calling中添加不需要用户提供的参数，如果响应中提供了这些参数，则不会被覆盖
-            参数注入使用变量名进行匹配，这些参数由 FunctionCalling 提供
+            此方法用于在 function calling 函数中注入不需要 LLM 提供的参数，如果 LLM 提供了这些参数，则不会覆盖
+            参数注入使用变量名进行匹配，这些参数由 FunctionCalling 类提供
         """
         self.injection_parameters[name] = {
             "description": description
@@ -80,7 +80,6 @@ class FunctionDescription:
         """
         将当前函数描述转换为 function calling 所需的格式
         """
-        
         props = {}
         required_list = []
         # 遍历参数
