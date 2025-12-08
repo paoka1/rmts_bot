@@ -1,8 +1,8 @@
 import json
+import aiofiles
+
 from typing import Optional
-
 from pathlib import Path
-
 from nonebot.log import logger
 
 from openai.types.chat import ChatCompletionSystemMessageParam
@@ -10,7 +10,7 @@ from openai.types.chat import ChatCompletionUserMessageParam
 from openai.types.chat import ChatCompletionAssistantMessageParam
 from openai.types.chat import ChatCompletionToolMessageParam
 
-def save_messages_to_file(messages, group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
+async def save_messages_to_file(messages, group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
     """保存消息历史到用户目录下的隐藏文件夹
     
     Args:
@@ -51,8 +51,9 @@ def save_messages_to_file(messages, group_id: Optional[int] = None, filename: st
             
             serializable_messages.append(msg_dict)
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(serializable_messages, f, ensure_ascii=False, indent=2)
+        # 使用异步文件写入
+        async with aiofiles.open(filepath, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(serializable_messages, ensure_ascii=False, indent=2))
         
         logger.info(f"消息已保存到: {filepath}")
         return True
@@ -60,22 +61,12 @@ def save_messages_to_file(messages, group_id: Optional[int] = None, filename: st
         logger.error(f"保存消息失败: {e}")
         return False
 
-def load_messages_from_file(group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
-    """从用户目录下的隐藏文件夹加载消息历史
-    
-    Args:
-        group_id: 群号,用于区分不同群组的聊天记录
-        filename: 基础文件名,如果提供了群号会自动加上群号后缀
-    
-    Returns:
-        消息列表
-    """
+async def load_messages_from_file(group_id: Optional[int] = None, filename: str = "rosmontis_chat.json"):
+    """从用户目录下的隐藏文件夹加载消息历史"""
     try:
-        # 获取隐藏文件夹路径
         user_home = Path.home()
         hidden_dir = user_home / ".rmts_chat"
         
-        # 根据群号生成文件名
         if group_id:
             base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
             extension = filename.rsplit('.', 1)[1] if '.' in filename else 'json'
@@ -87,8 +78,10 @@ def load_messages_from_file(group_id: Optional[int] = None, filename: str = "ros
             logger.warning(f"文件 {filepath} 不存在")
             return []
         
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        # 使用异步文件读取
+        async with aiofiles.open(filepath, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            data = json.loads(content)
         
         # 重新构建消息列表
         messages = []

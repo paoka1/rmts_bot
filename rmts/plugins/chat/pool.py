@@ -48,7 +48,7 @@ class ModelPool:
                               base_url=self.base_url,
                               model=self.model,
                               max_history=self.max_history_length)
-                model.init_client()
+                await model.init_model()
                 self.pool[group_id] = model
             return await self.pool[group_id].chat(user_message)
 
@@ -77,4 +77,4 @@ class ModelPool:
             if group_id not in self.locks:
                 self.locks[group_id] = asyncio.Lock()
             async with self.locks[group_id]:
-                model.save_messages()
+                await model.save_messages()

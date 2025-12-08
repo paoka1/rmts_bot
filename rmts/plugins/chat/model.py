@@ -16,13 +16,13 @@ from .history import save_messages_to_file, load_messages_from_file
 class Model:
     """
     LLM 聊天模型封装类，方法：
-        init_client: 初始化客户端
+        init_model: 初始化模型
         chat: 聊天接口
         save_messages: 保存消息历史
         load_messages: 加载消息历史
         clear_history: 清除消息历史
     说明：
-        在调用 chat 方法前，需先调用 init_client 方法初始化客户端
+        在调用 chat 方法前，需先调用 init_model 方法初始化模型
     """
 
     def __init__(self,
@@ -59,22 +59,22 @@ class Model:
                                   ChatCompletionAssistantMessageParam,
                                   ChatCompletionToolMessageParam]] = []
 
-        # 读取历史消息
-        messages = self.load_messages()
-        if messages == []:
-            # 初始化历史消息列表，包含系统提示
-            self.messages.append(ChatCompletionSystemMessageParam(content=self.prompt, role="system"))
-        else:
-            self.messages = messages
-
-    def init_client(self) -> None:
+    async def init_model(self) -> None:
         """
-        初始化 OpneAI 客户端
+        初始化 OpneAI 客户端，加载历史消息
         """
         self.client = AsyncOpenAI(
             api_key=self.key,
             base_url=self.base_url
         )
+
+        # 读取历史消息
+        messages = await self.load_messages()
+        if messages == []:
+            # 初始化历史消息列表，包含系统提示
+            self.messages.append(ChatCompletionSystemMessageParam(content=self.prompt, role="system"))
+        else:
+            self.messages = messages
 
     async def chat(self, user_message) -> Optional[str]:
         """
@@ -160,13 +160,13 @@ class Model:
         # 返回响应内容
         return response_message.content
     
-    def save_messages(self):
+    async def save_messages(self):
         """保存当前会话的消息历史"""
-        return save_messages_to_file(self.messages, self.group_id)
+        return await save_messages_to_file(self.messages, self.group_id)
     
-    def load_messages(self):
+    async def load_messages(self):
         """加载消息历史到当前会话"""
-        return load_messages_from_file(self.group_id)
+        return await load_messages_from_file(self.group_id)
     
     def clear_history(self):
         """清除当前会话的消息历史，保留系统提示"""
