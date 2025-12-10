@@ -38,8 +38,8 @@ class ModelPool:
         
         # 使用锁确保同一群组的消息顺序处理
         async with self.locks[group_id]:
-            if group_id not in self.pool:
-                injection_params = {"group_id": str(group_id)}
+            if group_id not in self.pool: # 懒加载
+                injection_params = {"group_id": str(group_id)} # 注入参数
                 function_calling = FunctionCalling(self.function_container, injection_params)
 
                 model = Model(group_id=group_id,
