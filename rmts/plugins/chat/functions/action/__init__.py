@@ -35,7 +35,7 @@ func_desc_send_sticker.add_return(name="result", description="操作结果")
 @function_container.function_calling(func_desc_send_sticker)
 async def send_sticker(type: str, group_id: int) -> str:
     bot = get_bot()
-    sticker_bytes = send_sticker_util.get_sticker_bytes(type)
+    sticker_bytes = await send_sticker_util.get_sticker_bytes(type)
     if sticker_bytes is None:
         return f"表情 {type} 不存在"
     

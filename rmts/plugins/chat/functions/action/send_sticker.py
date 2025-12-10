@@ -1,9 +1,11 @@
 import os
+import aiofiles
 
-from nonebot.log import logger
+from io import BytesIO
 from pathlib import Path
 from typing import Optional, List
-from io import BytesIO
+
+from nonebot.log import logger
 
 class SendSticker:
     
@@ -45,19 +47,21 @@ class SendSticker:
         
         return self.sticker_directory / f"{filename}{self.file_extension}"
     
-    def get_sticker_bytes(self, filename: str) -> Optional[BytesIO]:
+    async def get_sticker_bytes(self, filename: str) -> Optional[BytesIO]:
         """通过文件名获取贴纸的 BytesIO 对象
         
         Args:
-            filename: 贴纸文件名（不含扩展名）
+            filename: 贴纸文件名(不含扩展名)
             
         Returns:
-            BytesIO 对象，如果文件不存在则返回 None
+            BytesIO 对象,如果文件不存在则返回 None
         """
+        
         sticker_path = self.get_sticker_path(filename)
         
         if sticker_path is None:
             return None
         
-        with open(sticker_path, "rb") as f:
-            return BytesIO(f.read())
+        async with aiofiles.open(sticker_path, "rb") as f:
+            content = await f.read()
+            return BytesIO(content)
