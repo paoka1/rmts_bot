@@ -23,12 +23,12 @@ async def poke_doctor(id: int, group_id: int) -> str:
     )
     return f"你戳了戳ID为{id}的博士"
 
-# 发送表情包
+# 发送表情
 from rmts.plugins.chat.functions.action.send_sticker import SendSticker
 
 send_sticker_util = SendSticker()
-func_desc_send_sticker = FunctionDescription(name="send_sticker",description="发送指定表情包")
-func_desc_send_sticker.add_enum_parameter(name="type", description="表情包类型", enum_values=send_sticker_util.get_sticker_list(), required=True)
+func_desc_send_sticker = FunctionDescription(name="send_sticker",description="向博士发送指定表情")
+func_desc_send_sticker.add_enum_parameter(name="type", description="表情类型", enum_values=send_sticker_util.get_sticker_list(), required=True)
 func_desc_send_sticker.add_injection_parameter(name="group_id", description="群组的唯一标识符")
 func_desc_send_sticker.add_return(name="result", description="操作结果")
 
@@ -37,11 +37,11 @@ async def send_sticker(type: str, group_id: int) -> str:
     bot = get_bot()
     sticker_bytes = send_sticker_util.get_sticker_bytes(type)
     if sticker_bytes is None:
-        return f"表情包 {type} 不存在"
+        return f"表情 {type} 不存在"
     
     await bot.call_api(
         "send_group_msg",
         group_id=group_id,
         message=MessageSegment.image(file=sticker_bytes)
     )
-    return f"已发送表情包 {type}"
+    return f"已向博士发送表情 {type}"
