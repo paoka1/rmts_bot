@@ -143,11 +143,11 @@ async def handle_hello(event: MessageEvent):
 
 ### 为 chat 插件添加 Function Calling
 
-Function Calling 允许 AI 调用预定义的函数来执行特定操作。
+Function Calling 允许 AI 调用预定义的函数来执行特定操作
 
-1.（可选）在 `rmts/plugins/chat/functions/action/` 或 `info/` 下创建辅助模块
+1.在 `rmts/plugins/chat/functions/action/` 或 `info/` 下编写辅助模块，编写的模块在`__init__.py`中调用，如果实现的功能较为简单，可以直接在`__init__.py`编写逻辑
 
-如果需要复杂的辅助逻辑，可以创建独立的模块文件。
+其中 Bot 和外界的动作交互应在`action`中编写，获取信息应在`info`中编写，如果需要实现不同于两者的功能，可以创建独立的文件夹，如 `rmts/plugins/chat/functions/xxx/`
 
 2.在 `rmts/plugins/chat/functions/action/__init__.py` 或 `info/__init__.py` 中注册函数
 
@@ -156,7 +156,7 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 
 # 创建函数描述
 func_desc = FunctionDescription(name="function_name", description="函数功能描述")
-# 添加字符串参数
+# 添加字符串参数，required 表示该参数需要被 AI 提供
 func_desc.add_str_parameter(name="param_1", description="参数描述",required=True)
 # 添加枚举参数（从预定义的选项中选择）
 func_desc.add_enum_parameter(name="param_2", description="参数描述", enum_values=["选项1", "选项2", "选项3"], required=True)
@@ -171,6 +171,10 @@ async def function_name(param_1: str, param_2: str, group_id: int) -> str:
     # 函数实现
     return "执行结果"
 ```
+
+其中`add_str_parameter`和`add_enum_parameter`的参数由 AI 提供，`add_injection_parameter`用于自动注入不需要 LLM 提供的信息，如：群号，添加新的注入参数可参考`add_injection_parameter`的注释
+
+Function Calling 函数应包含一个`str`类型的返回值，对参数的数量没有要求
 
 3.系统会自动扫描并注册，AI 即可调用该函数
 
