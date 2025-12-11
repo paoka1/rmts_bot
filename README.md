@@ -1,6 +1,6 @@
 # rmts bot
 
-以迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架开发，支持 AI 对话、B站直播推送、互动游戏等多种功能
+以迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架和 OneBotv11 协议开发，支持 AI 对话（支持对 Function Calling 的插件式开发）、B站直播推送、互动游戏等多种功能
 
 ## 功能介绍
 
@@ -32,7 +32,7 @@
 
 ### 环境要求
 - Python >= 3.9, < 4.0
-- OneBot V11 协议端（如 NapCat 等）
+- OneBot V11 协议端（如 [NapCat](https://napneko.github.io/) 等）
 
 ### 安装步骤
 
@@ -199,6 +199,10 @@ ruff format .
 pyright
 ```
 
+## 测试工具
+
+如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试，或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)，同样可以完成代替真正的协议端的功能
+
 ### 提交 Pull Request
 
 1.Fork 本仓库
@@ -224,10 +228,13 @@ git push origin feature/your-feature
 
 5.在 GitHub 上创建 Pull Request，描述你的更改内容
 
-## 参考文档
+## 参考链接
 
 - [NoneBot2 文档](https://nonebot.dev/)
 - [OneBot V11 标准](https://github.com/botuniverse/onebot-11)
+- [NapCat 官网](https://napneko.github.io/)
+- [matcha 仓库](https://github.com/A-kirami/matcha)
+- [Console 适配器仓库](https://github.com/nonebot/adapter-console)
 
 ## 许可证
 
