@@ -3,7 +3,11 @@ import httpx
 import random
 import json
 
-from nonebot.log import logger
+try:
+    from nonebot.log import logger
+except ImportError:
+    import logging
+    logger = logging.getLogger()
 
 from typing import Optional
 
@@ -125,5 +129,5 @@ async def bli_live_status(uid: int) -> Optional[User]:
 
 
 if __name__ == '__main__':
-    res = asyncio.run(bli_live_status(349921961))
-    print(res)
+    uid = int(input("请输入 B 站用户 UID："))
+    print(asyncio.run(bli_live_status(uid)))
