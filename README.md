@@ -67,13 +67,10 @@ MAX_HISTORY_LENGTH=80               # 最大历史消息长度
 ```bash
 # 问候功能可用群组，多个用逗号分隔
 GREET_AVAILABLE_GROUPS=123456,789012
-
 # 清除历史功能可用群组
 CLEAR_HISTORY_AVAILABLE_GROUPS=123456,789012
-
 # 轮盘游戏可用群组
 ROULETTE_AVAILABLE_GROUPS=123456,789012
-
 # B站直播订阅配置，JSON 格式：{"群号": ["UP主UID"]}
 LIVE_SUBSCRIPTIONS={"123456": ["123456789","987654321"]}
 ```
@@ -88,6 +85,8 @@ ONEBOT_ACCESS_TOKEN= # 与协议端保持一致
 ```
 
 4.运行机器人
+
+进入 Bot 项目目录，运行：
 
 ```bash
 nb run
@@ -157,16 +156,12 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 
 # 创建函数描述
 func_desc = FunctionDescription(name="function_name", description="函数功能描述")
-
 # 添加字符串参数
 func_desc.add_str_parameter(name="param_1", description="参数描述",required=True)
-
 # 添加枚举参数（从预定义的选项中选择）
 func_desc.add_enum_parameter(name="param_2", description="参数描述", enum_values=["选项1", "选项2", "选项3"], required=True)
-
 # 添加注入参数（由系统自动提供，AI 无需传递）
 func_desc.add_injection_parameter(name="group_id", description="群组ID")
-
 # 添加返回值描述
 func_desc.add_return(name="result", description="返回值描述")
 
