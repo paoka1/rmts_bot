@@ -45,6 +45,8 @@ cd rmts_bot
 
 2.安装依赖
 
+该命令只安装运行时依赖，开发环境依赖安装命令见下文
+
 ```bash
 pip install -e .
 ```
@@ -172,9 +174,9 @@ async def function_name(param_1: str, param_2: str, group_id: int) -> str:
     return "执行结果"
 ```
 
-其中`add_str_parameter`和`add_enum_parameter`的参数由 AI 提供，`add_injection_parameter`用于自动注入不需要 LLM 提供的信息，如：群号，添加新的注入参数可参考`add_injection_parameter`的注释
+其中`add_str_parameter`和`add_enum_parameter`的参数由 AI 提供，`add_injection_parameter`用于自动注入不需要 AI 提供的信息，如：群号，添加新的可注入参数可参考`add_injection_parameter`的注释
 
-Function Calling 函数应包含一个`str`类型的返回值，对参数的数量没有要求
+Function Calling 函数应拥有一个`str`类型的返回值，对参数的数量没有要求
 
 3.系统会自动扫描并注册，AI 即可调用该函数
 
@@ -199,9 +201,9 @@ ruff format .
 pyright
 ```
 
-## 测试工具
+### 测试工具
 
-如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试，或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)，同样可以完成代替真正的协议端的功能
+如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试，或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)
 
 ### 提交 Pull Request
 
