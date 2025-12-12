@@ -30,86 +30,41 @@ func_desc_add_memories = FunctionDescription(
 )
 func_desc_add_memories.add_dict_param(
     name="memories",
-    description="信息的键值对字典，键和值都是字符串",
+    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息",
     value_type="string",
     required=True
 )
-func_desc_add_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
+func_desc_add_memories.add_param(name="doctor_id", description="博士的唯一标识符", required=True)
 func_desc_add_memories.add_injection_param(name="user_id", description="用户的唯一标识符")
+func_desc_add_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
 
 @function_container.function_calling(func_desc_add_memories)
-async def add_user_memories(memories: dict, group_id: str, user_id: str) -> str:
-    mem_manager.add_memories(group_id, user_id, memories)
+async def add_user_memories(memories: dict, group_id: str, doctor_id: str, user_id: str) -> str:
+    if user_id != doctor_id: # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
+        return f"id为{user_id}的博士想要修改id为{doctor_id}博士的信息，这是不允许的"
+    mem_manager.add_memories(group_id, doctor_id, memories)
     await mem_manager.save_group_memory(group_id)
     keys = ", ".join(memories.keys())
     return f"已成功记下博士的信息：{keys}"
 
-# 删除用户记忆
-func_desc_del_memories = FunctionDescription(
-    name="delete_user_memories",
-    description="在终端删除指定博士的信息"
+# 获取用户所有记忆
+func_desc_get_all_memories = FunctionDescription(
+    name="get_user_all_memories",
+    description="在终端读取指定博士的所有信息"
 )
-func_desc_del_memories.add_list_param(
-    name="keys",
-    description="需要删除的信息键列表",
-    item_type="string",
-    required=True
-)
-func_desc_del_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
-func_desc_del_memories.add_injection_param(name="user_id", description="用户的唯一标识符")
+func_desc_get_all_memories.add_param(name="doctor_id", description="博士的唯一标识符", required=True)
+func_desc_get_all_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
 
-@function_container.function_calling(func_desc_del_memories)
-async def delete_user_memories(keys: list, group_id: str, user_id: str) -> str:
-    # 检查记忆是否存在
-    existing_memories = mem_manager.get_memory(group_id, user_id, keys)
-    
-    if not existing_memories:
-        return f"该博士没有这些信息：{', '.join(keys)}"
-    
-    non_existing_keys = [key for key in keys if key not in existing_memories]
-    
-    mem_manager.del_memories(group_id, user_id, keys)
-    await mem_manager.save_group_memory(group_id)
-    
-    if non_existing_keys:
-        deleted_keys = ", ".join(existing_memories.keys())
-        missing_keys = ", ".join(non_existing_keys)
-        return f"已删除信息：{deleted_keys}；但这些信息不存在：{missing_keys}"
-    else:
-        deleted_keys = ", ".join(keys)
-        return f"已成功删除博士的信息：{deleted_keys}"
-
-# 获取用户记忆
-func_desc_get_memory = FunctionDescription(
-    name="get_user_memories",
-    description="在终端读取指定博士的信息"
-)
-func_desc_get_memory.add_list_param(
-    name="keys",
-    description="需要获取的信息键列表",
-    item_type="string",
-    required=True
-)
-func_desc_get_memory.add_injection_param(name="group_id", description="群组的唯一标识符")
-func_desc_get_memory.add_injection_param(name="user_id", description="用户的唯一标识符")
-
-@function_container.function_calling(func_desc_get_memory)
-async def get_user_memories(keys: list, group_id: str, user_id: str) -> str:
-    memories = mem_manager.get_memory(group_id, user_id, keys)
+@function_container.function_calling(func_desc_get_all_memories)
+async def get_user_all_memories(group_id: str, doctor_id: str) -> str:
+    memories = mem_manager.get_user_all_memories(group_id, doctor_id)
     
     if not memories:
-        return f"博士没有这些信息：{', '.join(keys)}"
-    
-    non_existing_keys = [key for key in keys if key not in memories]
+        return "博士还没有任何记录的信息"
     
     result_lines = [f"{key}: {value}" for key, value in memories.items()]
     result = "\n".join(result_lines)
-    
-    if non_existing_keys:
-        missing = ", ".join(non_existing_keys)
-        return f"博士的信息：\n{result}\n\n但这些信息不存在：{missing}"
-    else:
-        return f"博士的信息：\n{result}"
+    return f"博士的所有信息：\n{result}"
 
 # 添加群组全局记忆
 func_desc_add_group_memories = FunctionDescription(
@@ -118,7 +73,7 @@ func_desc_add_group_memories = FunctionDescription(
 )
 func_desc_add_group_memories.add_dict_param(
     name="memories",
-    description="信息的键值对字典，键和值都是字符串",
+    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息",
     value_type="string",
     required=True
 )
@@ -131,102 +86,20 @@ async def add_group_global_memories(memories: dict, group_id: str) -> str:
     keys = ", ".join(memories.keys())
     return f"已成功记下全局信息：{keys}"
 
-# 删除群组全局记忆
-func_desc_del_group_memories = FunctionDescription(
-    name="delete_group_global_memories",
-    description="在终端删除全局信息"
+# 获取群组所有全局记忆
+func_desc_get_group_all_memories = FunctionDescription(
+    name="get_group_global_all_memories",
+    description="在终端读取所有全局信息"
 )
-func_desc_del_group_memories.add_list_param(
-    name="keys",
-    description="需要删除的信息键列表",
-    item_type="string",
-    required=True
-)
-func_desc_del_group_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
+func_desc_get_group_all_memories.add_injection_param(name="group_id", description="群组的唯一标识符")
 
-@function_container.function_calling(func_desc_del_group_memories)
-async def delete_group_global_memories(keys: list, group_id: str) -> str:
-    # 检查记忆是否存在
-    existing_memories = mem_manager.get_group_global_memory(group_id, keys)
-    
-    if not existing_memories:
-        return f"没有这些全局信息：{', '.join(keys)}"
-    
-    non_existing_keys = [key for key in keys if key not in existing_memories]
-    
-    mem_manager.del_group_global_memories(group_id, keys)
-    await mem_manager.save_group_memory(group_id)
-    
-    if non_existing_keys:
-        deleted_keys = ", ".join(existing_memories.keys())
-        missing_keys = ", ".join(non_existing_keys)
-        return f"已删除全局信息：{deleted_keys}；但这些信息不存在：{missing_keys}"
-    else:
-        deleted_keys = ", ".join(keys)
-        return f"已成功删除全局信息：{deleted_keys}"
-
-# 获取群组全局记忆
-func_desc_get_group_memory = FunctionDescription(
-    name="get_group_global_memories",
-    description="在终端读取全局信息"
-)
-func_desc_get_group_memory.add_list_param(
-    name="keys",
-    description="需要获取的信息键列表",
-    item_type="string",
-    required=True
-)
-func_desc_get_group_memory.add_injection_param(name="group_id", description="群组的唯一标识符")
-
-@function_container.function_calling(func_desc_get_group_memory)
-async def get_group_global_memories(keys: list, group_id: str) -> str:
-    memories = mem_manager.get_group_global_memory(group_id, keys)
+@function_container.function_calling(func_desc_get_group_all_memories)
+async def get_group_global_all_memories(group_id: str) -> str:
+    memories = mem_manager.get_group_global_all_memories(group_id)
     
     if not memories:
-        return f"没有这些全局信息：{', '.join(keys)}"
-    
-    non_existing_keys = [key for key in keys if key not in memories]
+        return "还没有任何记录的全局信息"
     
     result_lines = [f"{key}: {value}" for key, value in memories.items()]
     result = "\n".join(result_lines)
-    
-    if non_existing_keys:
-        missing = ", ".join(non_existing_keys)
-        return f"全局信息：\n{result}\n\n但这些信息不存在：{missing}"
-    else:
-        return f"全局信息：\n{result}"
-
-# 获取用户所有记忆键
-func_desc_get_user_keys = FunctionDescription(
-    name="get_user_all_keys",
-    description="在终端读取指定博士的所有信息键"
-)
-func_desc_get_user_keys.add_injection_param(name="group_id", description="群组的唯一标识符")
-func_desc_get_user_keys.add_injection_param(name="user_id", description="用户的唯一标识符")
-
-@function_container.function_calling(func_desc_get_user_keys)
-async def get_user_all_keys(group_id: str, user_id: str) -> str:
-    keys = mem_manager.get_user_all_keys(group_id, user_id)
-    
-    if not keys:
-        return "博士还没有任何记录的信息"
-    
-    keys_str = ", ".join(keys)
-    return f"博士的所有信息键：{keys_str}"
-
-# 获取群组全局所有记忆键
-func_desc_get_group_keys = FunctionDescription(
-    name="get_group_global_all_keys",
-    description="在终端读取所有全局信息键"
-)
-func_desc_get_group_keys.add_injection_param(name="group_id", description="群组的唯一标识符")
-
-@function_container.function_calling(func_desc_get_group_keys)
-async def get_group_global_all_keys(group_id: str) -> str:
-    keys = mem_manager.get_group_global_all_keys(group_id)
-    
-    if not keys:
-        return "还没有任何记录的全局信息"
-    
-    keys_str = ", ".join(keys)
-    return f"所有全局信息键：{keys_str}"
+    return f"所有全局信息：\n{result}"
