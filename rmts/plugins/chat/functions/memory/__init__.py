@@ -42,7 +42,7 @@ func_desc_add_memories.add_injection_param(name="group_id", description="群组�
 async def add_user_memories(memories: dict, group_id: str, doctor_id: str, user_id: str) -> str:
     if user_id != doctor_id: # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
         return f"id为{user_id}的博士想要修改id为{doctor_id}博士的信息，这是不允许的"
-    mem_manager.add_memories(group_id, doctor_id, memories)
+    await mem_manager.add_memories(group_id, doctor_id, memories)
     await mem_manager.save_group_memory(group_id)
     keys = ", ".join(memories.keys())
     return f"已成功记下博士的信息：{keys}"
@@ -57,7 +57,7 @@ func_desc_get_all_memories.add_injection_param(name="group_id", description="群
 
 @function_container.function_calling(func_desc_get_all_memories)
 async def get_user_all_memories(group_id: str, doctor_id: str) -> str:
-    memories = mem_manager.get_user_all_memories(group_id, doctor_id)
+    memories = await mem_manager.get_user_all_memories(group_id, doctor_id)
     
     if not memories:
         return "博士还没有任何记录的信息"
@@ -81,7 +81,7 @@ func_desc_add_group_memories.add_injection_param(name="group_id", description="�
 
 @function_container.function_calling(func_desc_add_group_memories)
 async def add_group_global_memories(memories: dict, group_id: str) -> str:
-    mem_manager.add_group_global_memories(group_id, memories)
+    await mem_manager.add_group_global_memories(group_id, memories)
     await mem_manager.save_group_memory(group_id)
     keys = ", ".join(memories.keys())
     return f"已成功记下全局信息：{keys}"
@@ -95,7 +95,7 @@ func_desc_get_group_all_memories.add_injection_param(name="group_id", descriptio
 
 @function_container.function_calling(func_desc_get_group_all_memories)
 async def get_group_global_all_memories(group_id: str) -> str:
-    memories = mem_manager.get_group_global_all_memories(group_id)
+    memories = await mem_manager.get_group_global_all_memories(group_id)
     
     if not memories:
         return "还没有任何记录的全局信息"

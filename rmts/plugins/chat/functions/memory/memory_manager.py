@@ -4,6 +4,7 @@ import aiofiles
 from pathlib import Path
 from typing import List, Dict
 from collections import OrderedDict
+from asyncio import Lock
 
 from nonebot.log import logger
 
@@ -166,8 +167,15 @@ class MemoryManager:
         self.group_memories: Dict[str, GroupMemory] = {}
         self.storage_dir = Path.home() / ".rmts_chat"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
+        self._locks: Dict[str, Lock] = {}  # 每个群组的锁
+    
+    def _get_lock(self, group_id: str) -> Lock:
+        """获取或创建指定群组的锁"""
+        if group_id not in self._locks:
+            self._locks[group_id] = Lock()
+        return self._locks[group_id]
 
-    def add_memories(self, group_id: str, user_id: str, memories: Dict[str, str]) -> None:
+    async def add_memories(self, group_id: str, user_id: str, memories: Dict[str, str]) -> None:
         """
         为指定群组和用户添加记忆
         参数：
@@ -175,22 +183,24 @@ class MemoryManager:
             user_id: 用户的唯一标识符
             memories: 记忆的键值对字典
         """
-        if group_id not in self.group_memories:
-            self.group_memories[group_id] = GroupMemory(group_id, self.max_memory_size)
-        self.group_memories[group_id].add_user_memories(user_id, memories)
+        async with self._get_lock(group_id):
+            if group_id not in self.group_memories:
+                self.group_memories[group_id] = GroupMemory(group_id, self.max_memory_size)
+            self.group_memories[group_id].add_user_memories(user_id, memories)
     
-    def add_group_global_memories(self, group_id: str, memories: Dict[str, str]) -> None:
+    async def add_group_global_memories(self, group_id: str, memories: Dict[str, str]) -> None:
         """
         为指定群组添加全局记忆
         参数：
             group_id: 群组的唯一标识符
             memories: 记忆的键值对字典
         """
-        if group_id not in self.group_memories:
-            self.group_memories[group_id] = GroupMemory(group_id, self.max_memory_size)
-        self.group_memories[group_id].group_global_memory.add_memories(memories)
+        async with self._get_lock(group_id):
+            if group_id not in self.group_memories:
+                self.group_memories[group_id] = GroupMemory(group_id, self.max_memory_size)
+            self.group_memories[group_id].group_global_memory.add_memories(memories)
     
-    def get_user_all_memories(self, group_id: str, user_id: str) -> Dict[str, str]:
+    async def get_user_all_memories(self, group_id: str, user_id: str) -> Dict[str, str]:
         """
         获取指定群组和用户的所有记忆
         参数：
@@ -199,11 +209,12 @@ class MemoryManager:
         返回：
             用户所有记忆的字典
         """
-        if group_id in self.group_memories:
-            return self.group_memories[group_id].get_user_all_memories(user_id)
-        return {}
+        async with self._get_lock(group_id):
+            if group_id in self.group_memories:
+                return self.group_memories[group_id].get_user_all_memories(user_id)
+            return {}
     
-    def get_group_global_all_memories(self, group_id: str) -> Dict[str, str]:
+    async def get_group_global_all_memories(self, group_id: str) -> Dict[str, str]:
         """
         获取指定群组的所有全局记忆
         参数：
@@ -211,9 +222,10 @@ class MemoryManager:
         返回：
             群组所有全局记忆的字典
         """
-        if group_id in self.group_memories:
-            return dict(self.group_memories[group_id].group_global_memory.memory_data)
-        return {}
+        async with self._get_lock(group_id):
+            if group_id in self.group_memories:
+                return dict(self.group_memories[group_id].group_global_memory.memory_data)
+            return {}
     
     async def save_group_memory(self, group_id: str) -> bool:
         """
@@ -223,22 +235,23 @@ class MemoryManager:
         返回：
             是否保存成功
         """
-        if group_id not in self.group_memories:
-            logger.warning(f"群组 {group_id} 的记忆不存在，无法保存")
-            return False
-        
-        try:
-            file_path = self.storage_dir / f"rosmontis_memory_group_{group_id}.json"
-            data = self.group_memories[group_id].to_dict()
+        async with self._get_lock(group_id):
+            if group_id not in self.group_memories:
+                logger.warning(f"群组 {group_id} 的记忆不存在，无法保存")
+                return False
             
-            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
-            
-            logger.info(f"成功保存群组 {group_id} 的记忆到 {file_path}")
-            return True
-        except Exception as e:
-            logger.error(f"保存群组 {group_id} 的记忆时出错: {e}")
-            return False
+            try:
+                file_path = self.storage_dir / f"rosmontis_memory_group_{group_id}.json"
+                data = self.group_memories[group_id].to_dict()
+                
+                async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(data, ensure_ascii=False, indent=2))
+                
+                logger.info(f"成功保存群组 {group_id} 的记忆到 {file_path}")
+                return True
+            except Exception as e:
+                logger.error(f"保存群组 {group_id} 的记忆时出错: {e}")
+                return False
     
     async def load_group_memory(self, group_id: str) -> bool:
         """
@@ -248,23 +261,24 @@ class MemoryManager:
         返回：
             是否加载成功
         """
-        try:
-            file_path = self.storage_dir / f"rosmontis_memory_group_{group_id}.json"
-            
-            if not file_path.exists():
-                logger.warning(f"群组 {group_id} 的记忆文件不存在: {file_path}")
+        async with self._get_lock(group_id):
+            try:
+                file_path = self.storage_dir / f"rosmontis_memory_group_{group_id}.json"
+                
+                if not file_path.exists():
+                    logger.warning(f"群组 {group_id} 的记忆文件不存在: {file_path}")
+                    return False
+                
+                async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+                    content = await f.read()
+                    data = json.loads(content)
+                
+                self.group_memories[group_id] = GroupMemory.from_dict(data)
+                logger.info(f"成功加载群组 {group_id} 的记忆，共 {len(self.group_memories[group_id].user_memories)} 个用户记忆")
+                return True
+            except Exception as e:
+                logger.error(f"加载群组 {group_id} 的记忆时出错: {e}")
                 return False
-            
-            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
-                content = await f.read()
-                data = json.loads(content)
-            
-            self.group_memories[group_id] = GroupMemory.from_dict(data)
-            logger.info(f"成功加载群组 {group_id} 的记忆，共 {len(self.group_memories[group_id].user_memories)} 个用户记忆")
-            return True
-        except Exception as e:
-            logger.error(f"加载群组 {group_id} 的记忆时出错: {e}")
-            return False
     
     async def save_all_memories(self) -> None:
         """
