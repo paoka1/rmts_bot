@@ -147,11 +147,11 @@ async def handle_hello(event: MessageEvent):
 
 Function Calling 允许 AI 调用预定义的函数来执行特定操作
 
-1.在 `rmts/plugins/chat/functions/action/` 或 `info/` 等下编写辅助模块，编写的模块在`__init__.py`中调用，如果实现的功能较为简单，可以直接在`__init__.py`编写逻辑
+1.在 `rmts/plugins/chat/functions/action/`、`info/` 等目录下编写辅助模块，编写的模块在 `__init__.py` 中调用，如果实现的功能较为简单，可以直接在 `__init__.py` 编写逻辑
 
-其中 Bot 和外界的动作交互应在`action`中编写，获取信息应在`info`中编写，以此类推，如果需要实现不同于两者的功能，可以创建独立的文件夹，如 `rmts/plugins/chat/functions/xxx/`
+其中 Bot 和外界的动作交互应在 `action` 中编写，获取信息应在 `info` 中编写，以此类推，如果需要实现不同于两者的功能，可以创建独立的文件夹，如 `rmts/plugins/chat/functions/xxx/`
 
-2.在 `rmts/plugins/chat/functions/action/__init__.py` 或 `info/__init__.py` 中注册函数
+2.在选择的目录下注册函数
 
 ```python
 from rmts.plugins.chat.function_calling import FunctionDescription, function_container
