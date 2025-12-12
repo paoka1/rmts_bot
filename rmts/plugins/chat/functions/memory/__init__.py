@@ -26,11 +26,11 @@ async def save_memories():
 # 添加用户记忆
 func_desc_add_memories = FunctionDescription(
     name="add_user_memories",
-    description="在终端记下指定博士的信息"
+    description="在终端记下、删除或更改指定博士的信息"
 )
 func_desc_add_memories.add_dict_param(
     name="memories",
-    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息",
+    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息，值为'空'表示在值不存储信息",
     value_type="string",
     required=True
 )
@@ -43,7 +43,6 @@ async def add_user_memories(memories: dict, group_id: str, doctor_id: str, user_
     if user_id != doctor_id: # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
         return f"id为{user_id}的博士想要修改id为{doctor_id}博士的信息，这是不允许的"
     await mem_manager.add_memories(group_id, doctor_id, memories)
-    await mem_manager.save_group_memory(group_id)
     keys = ", ".join(memories.keys())
     return f"已成功记下博士的信息：{keys}"
 
@@ -69,11 +68,11 @@ async def get_user_all_memories(group_id: str, doctor_id: str) -> str:
 # 添加群组全局记忆
 func_desc_add_group_memories = FunctionDescription(
     name="add_group_global_memories",
-    description="在终端记下全局信息"
+    description="在终端记下、删除或更改全局信息"
 )
 func_desc_add_group_memories.add_dict_param(
     name="memories",
-    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息",
+    description="信息的键值对字典，键和值都是字符串，值为空字符串表示删除该信息，值为'空'表示在值不存储信息",
     value_type="string",
     required=True
 )
@@ -82,7 +81,6 @@ func_desc_add_group_memories.add_injection_param(name="group_id", description="�
 @function_container.function_calling(func_desc_add_group_memories)
 async def add_group_global_memories(memories: dict, group_id: str) -> str:
     await mem_manager.add_group_global_memories(group_id, memories)
-    await mem_manager.save_group_memory(group_id)
     keys = ", ".join(memories.keys())
     return f"已成功记下全局信息：{keys}"
 

@@ -41,21 +41,13 @@ class Memory:
                 self.memory_data[key] = value
         
         # 计算当前记忆的总字符数
-        def _calculate_total_chars() -> int:
+        def calculate_total_chars() -> int:
             return sum(len(k) + len(v) for k, v in self.memory_data.items())
         
         # 如果超过限制，删除最旧的记忆
-        while _calculate_total_chars() > self.max_memory_size and len(self.memory_data) > 0:
+        while calculate_total_chars() > self.max_memory_size and len(self.memory_data) > 0:
             # 删除最旧的记忆（OrderedDict的第一个元素）
             self.memory_data.popitem(last=False)
-
-    def get_all_keys(self) -> List[str]:
-        """
-        获取所有记忆键
-        返回：
-            所有记忆键的列表
-        """
-        return list(self.memory_data.keys())
     
     def to_dict(self) -> Dict:
         """
