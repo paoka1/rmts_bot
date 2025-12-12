@@ -40,7 +40,7 @@ class ModelPool:
         # 使用锁确保同一群组的消息顺序处理
         async with self.locks[group_id]:
             if group_id not in self.pool: # 懒加载
-                injection_params = {"group_id": str(group_id)} # 注入参数，在 Model 中也会动态注入参数
+                injection_params = {"group_id": str(group_id)} # 注入参数 group_id
                 function_calling = FunctionCalling(self.function_container, injection_params)
 
                 model = Model(group_id=group_id,
@@ -51,7 +51,8 @@ class ModelPool:
                               max_history=self.max_history_length)
                 await model.init_model()
                 self.pool[group_id] = model
-            return await self.pool[group_id].chat(user_message, user_id)
+            self.pool[group_id].fc.add_injection_param("user_id", str(user_id))  # 每次调用时注入 user_id
+            return await self.pool[group_id].chat(user_message)
 
     async def clear_history(self, group_id: int):
         """

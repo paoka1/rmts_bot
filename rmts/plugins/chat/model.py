@@ -76,7 +76,7 @@ class Model:
         else:
             self.messages = messages
 
-    async def chat(self, user_message: str, user_id: int) -> Optional[str]:
+    async def chat(self, user_message: str) -> Optional[str]:
         """
         LLM 聊天接口
         """
@@ -118,9 +118,6 @@ class Model:
                     if isinstance(tool_call, ChatCompletionMessageFunctionToolCall)
                 ]
             ))
-
-            # 注入触发事件用户的 ID
-            self.fc.add_injection_param("user_id", str(user_id))
 
             # 执行所有函数调用
             for tool_call in response_message.tool_calls:

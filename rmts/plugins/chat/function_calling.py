@@ -15,10 +15,9 @@ F = TypeVar('F', bound=Callable[..., Union[str, Coroutine[Any, Any, str]]])
 class FunctionDescription:
     """
     函数描述类，包含函数的描述信息、参数和返回值信息
-    add_str_parameter 方法用于添加字符串参数
-    add_enum_parameter 方法用于添加枚举参数
-    add_injection_parameter 方法用于添加注入参数
-    add_return 方法用于添加返回值
+    add_str_param 方法用于添加字符串参数
+    add_enum_param 方法用于添加枚举参数
+    add_injection_param 方法用于添加注入参数
     to_schema 方法用于将函数描述转换为 function calling 所需的格式
     """
 
@@ -36,9 +35,8 @@ class FunctionDescription:
         self.str_parameters = {}
         self.enum_parameters = {}
         self.injection_parameters = {}
-        self.return_value = None
 
-    def add_str_parameter(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+    def add_str_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
         """
         添加参数，参数：
             name: 参数名称
@@ -55,7 +53,7 @@ class FunctionDescription:
         }
         return self
     
-    def add_enum_parameter(self, name: str, description: str, enum_values: List[str], required: bool = False) -> "FunctionDescription":
+    def add_enum_param(self, name: str, description: str, enum_values: List[str], required: bool = False) -> "FunctionDescription":
         """
         添加枚举参数，参数：
             name: 参数名称
@@ -71,7 +69,7 @@ class FunctionDescription:
         }
         return self
     
-    def add_injection_parameter(self, name: Literal["group_id", "user_id"], description: str) -> "FunctionDescription":
+    def add_injection_param(self, name: Literal["group_id", "user_id"], description: str = "") -> "FunctionDescription":
         """
         添加注入参数，参数：
             name: 参数名称
@@ -86,21 +84,12 @@ class FunctionDescription:
             group_id: 当前上下文所在群组 ID
             user_id: 触发本次事件用户的 ID
         """
+        if description == "":
+            description = f"注入参数: {name}"
         self.injection_parameters[name] = {
             "description": description
         }
         return self
-    
-    def add_return(self, name: str, description: str) -> None:
-        """
-        添加返回值，其类型为 str，参数：
-            name: 返回值名称
-            description: 返回值描述
-        """
-        self.return_value = {
-            "name": name,
-            "description": description
-        }
 
     def to_schema(self) -> dict:
         """
