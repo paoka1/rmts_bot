@@ -69,6 +69,24 @@ class FunctionDescription:
         }
         return self
     
+    def add_list_param(self, name: str, description: str, item_type: str = "string", required: bool = False) -> "FunctionDescription":
+        """
+        添加列表参数，参数：
+            name: 参数名称
+            description: 参数描述
+            item_type: 列表项类型，默认为字符串
+            required: 是否必需
+        """
+        self.str_parameters[name] = {
+            "type": "array",
+            "items": {
+                "type": item_type
+            },
+            "description": description,
+            "required": required
+        }
+        return self
+    
     def add_injection_param(self, name: Literal["group_id", "user_id"], description: str = "") -> "FunctionDescription":
         """
         添加注入参数，参数：
@@ -100,10 +118,15 @@ class FunctionDescription:
         
         # 遍历字符串参数
         for name, info in self.str_parameters.items():
-            props[name] = {
+            param_def = {
                 "type": info["type"],
                 "description": info["description"]
             }
+            # 如果是数组类型,需要添加 items 字段
+            if info["type"] == "array" and "items" in info:
+                param_def["items"] = info["items"]
+            
+            props[name] = param_def
             if info.get("required"):
                 required_list.append(name)
         
