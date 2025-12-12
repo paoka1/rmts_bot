@@ -160,9 +160,9 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 func_desc = FunctionDescription(name="function_name", description="函数功能描述")
 
 # 添加参数（AI 提供）
-func_desc.add_str_param(name="param1", description="参数描述", required=True)
+func_desc.add_param(name="param1", description="参数描述", param_type="string", required=True)
 func_desc.add_enum_param(name="param2", description="选择参数", enum_values=["选项1", "选项2"], required=True)
-func_desc.add_list_param(name="param3", description="列表参数", item_type="string", required=False)
+func_desc.add_list_param(name="param3", description="列表参数", item_type="integer", required=False)
 func_desc.add_dict_param(name="param4", description="字典参数", value_type="string", required=False)
 
 # 添加注入参数（系统自动提供，AI 无需传递）
@@ -176,10 +176,10 @@ async def function_name(param1: str, param2: str, param3: list, param4: dict, gr
 ```
 
 **可用的参数添加方法：**
-- `add_str_param`: 字符串参数
+- `add_param`: 基本类型参数（`string`、`number`、`integer`、`boolean`）
 - `add_enum_param`: 枚举参数（从预定义选项中选择）
-- `add_list_param`: 列表参数
-- `add_dict_param`: 字典参数
+- `add_list_param`: 列表参数（可指定元素类型）
+- `add_dict_param`: 字典参数（可指定值类型）
 - `add_injection_param`: 注入参数（系统自动提供，如 `group_id`、`user_id`）
 
 Function Calling 函数应拥有一个 `str` 类型的返回值，对参数的数量没有要求

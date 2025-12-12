@@ -36,7 +36,7 @@ class FunctionDescription:
         self.enum_parameters = {}
         self.injection_parameters = {}
 
-    def add_param(self, name: str, description: str, param_type: str = "string", required: bool = False) -> "FunctionDescription":
+    def add_param(self, name: str, description: str, param_type: Literal["string", "number", "integer", "boolean"] = "string", required: bool = False) -> "FunctionDescription":
         """
         添加参数，参数：
             name: 参数名称
@@ -47,8 +47,6 @@ class FunctionDescription:
                 - "number": 数字（浮点数）
                 - "integer": 整数
                 - "boolean": 布尔值
-                - "object": 对象
-                - "array": 数组（使用 add_list_param 更方便）
             required: 是否必需
         返回值：
             返回函数描述对象本身，支持链式调用
@@ -60,20 +58,13 @@ class FunctionDescription:
         }
         return self
     
-    def add_str_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
-        """
-        添加字符串参数（便捷方法）
-        等同于 add_param(name, description, "string", required)
-        """
-        return self.add_param(name, description, "string", required)
-    
-    def add_enum_param(self, name: str, description: str, enum_values: List[str], enum_type: str = "string", required: bool = False) -> "FunctionDescription":
+    def add_enum_param(self, name: str, description: str, enum_values: List[str], enum_type: Literal["string", "number", "integer", "boolean"] = "string", required: bool = False) -> "FunctionDescription":
         """
         添加枚举参数，参数：
             name: 参数名称
             description: 参数描述
             enum_values: 枚举值列表
-            enum_type: 枚举类型，默认为 "string"，可选 "number"、"integer"、"boolean" 等
+            enum_type: 枚举类型，默认为 "string"，可选 "number"、"integer"、"boolean"
             required: 是否必需
         """
         self.enum_parameters[name] = {
@@ -84,12 +75,12 @@ class FunctionDescription:
         }
         return self
     
-    def add_list_param(self, name: str, description: str, item_type: str = "string", required: bool = False) -> "FunctionDescription":
+    def add_list_param(self, name: str, description: str, item_type: Literal["string", "number", "integer", "boolean"] = "string", required: bool = False) -> "FunctionDescription":
         """
         添加列表参数，参数：
             name: 参数名称
             description: 参数描述
-            item_type: 列表项类型，默认为 "string"，可选 "number"、"integer"、"boolean"、"object" 等
+            item_type: 列表项类型，默认为 "string"，可选 "number"、"integer"、"boolean"
             required: 是否必需
         """
         self.str_parameters[name] = {
@@ -102,12 +93,12 @@ class FunctionDescription:
         }
         return self
     
-    def add_dict_param(self, name: str, description: str, value_type: str = "string", required: bool = False) -> "FunctionDescription":
+    def add_dict_param(self, name: str, description: str, value_type: Literal["string", "number", "integer", "boolean"] = "string", required: bool = False) -> "FunctionDescription":
         """
         添加字典参数，参数：
             name: 参数名称
             description: 参数描述
-            value_type: 字典值的类型，默认为 "string"，可选 "number"、"integer"、"boolean"、"object" 等
+            value_type: 字典值的类型，默认为 "string"，可选 "number"、"integer"、"boolean"
             required: 是否必需
         """
         self.str_parameters[name] = {
