@@ -127,14 +127,12 @@ class Model:
                 function_name = tool_call.function.name
                 function_args = tool_call.function.arguments
 
-                args_dict = {}
                 try:
                     args_dict = json.loads(function_args)
+                    # 调用函数并获取结果
+                    function_response = await self.fc.call(function_name, args_dict)
                 except json.JSONDecodeError:
                     function_response = f"函数参数解析错误: {function_args}"
-
-                # 调用函数并获取结果
-                function_response = await self.fc.call(function_name, args_dict)
 
                 # 添加工具返回结果
                 self.messages.append(ChatCompletionToolMessageParam(
@@ -145,10 +143,12 @@ class Model:
             
             # 再次调用聊天接口，获取最终响应
             call_again_response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=self.messages,
-                temperature=1.5,
-                stream=False)
+                    model=self.model,
+                    messages=self.messages,
+                    temperature=1.5,
+                    tools=self.fc.to_schemas(),
+                    tool_choice="auto",
+                    stream=False)
             response_message = call_again_response.choices[0].message
 
         else: # 没有工具调用，直接使用助手响应
