@@ -147,7 +147,7 @@ async def handle_hello(event: MessageEvent):
 
 Function Calling 允许 AI 调用预定义的函数来执行特定操作
 
-1.在 `rmts/plugins/chat/functions/action/` 或 `info/`等下编写辅助模块，编写的模块在`__init__.py`中调用，如果实现的功能较为简单，可以直接在`__init__.py`编写逻辑
+1.在 `rmts/plugins/chat/functions/action/` 或 `info/` 等下编写辅助模块，编写的模块在`__init__.py`中调用，如果实现的功能较为简单，可以直接在`__init__.py`编写逻辑
 
 其中 Bot 和外界的动作交互应在`action`中编写，获取信息应在`info`中编写，以此类推，如果需要实现不同于两者的功能，可以创建独立的文件夹，如 `rmts/plugins/chat/functions/xxx/`
 
@@ -158,23 +158,31 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 
 # 创建函数描述
 func_desc = FunctionDescription(name="function_name", description="函数功能描述")
-# 添加字符串参数，required 表示该参数 AI 必须提供
-func_desc.add_str_param(name="param1", description="参数描述",required=True)
-# 添加枚举参数（从预定义的选项中选择）
-func_desc.add_enum_param(name="param2", description="参数描述", enum_values=["选项1", "选项2", "选项3"], required=True)
-# 添加注入参数（由系统自动提供，AI 无需传递）
-func_desc.add_injection_parameter(name="group_id", description="群组ID")
+
+# 添加参数（AI 提供）
+func_desc.add_str_param(name="param1", description="参数描述", required=True)
+func_desc.add_enum_param(name="param2", description="选择参数", enum_values=["选项1", "选项2"], required=True)
+func_desc.add_list_param(name="param3", description="列表参数", item_type="string", required=False)
+func_desc.add_dict_param(name="param4", description="字典参数", value_type="string", required=False)
+
+# 添加注入参数（系统自动提供，AI 无需传递）
+func_desc.add_injection_param(name="group_id", description="群组ID")
 
 # 使用装饰器注册函数
 @function_container.function_calling(func_desc)
-async def function_name(param_1: str, param_2: str, group_id: int) -> str:
+async def function_name(param1: str, param2: str, param3: list, param4: dict, group_id: int) -> str:
     # 函数实现
     return "执行结果"
 ```
 
-其中`add_str_param`和`add_enum_param`的参数由 AI 提供，`add_injection_parameter`用于自动注入不需要 AI 提供的信息，如：群号等，添加新的可注入参数可参考`add_injection_parameter`的注释
+**可用的参数添加方法：**
+- `add_str_param`: 字符串参数
+- `add_enum_param`: 枚举参数（从预定义选项中选择）
+- `add_list_param`: 列表参数
+- `add_dict_param`: 字典参数
+- `add_injection_param`: 注入参数（系统自动提供，如 `group_id`、`user_id`）
 
-Function Calling 函数应拥有一个`str`类型的返回值，对参数的数量没有要求
+Function Calling 函数应拥有一个 `str` 类型的返回值，对参数的数量没有要求
 
 3.系统会自动扫描并注册，AI 即可调用该函数
 
