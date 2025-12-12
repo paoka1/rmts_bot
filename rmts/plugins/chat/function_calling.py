@@ -69,7 +69,7 @@ class FunctionDescription:
         }
         return self
     
-    def add_list_param(self, name: str, description: str, item_type: str = "string", required: bool = False) -> "FunctionDescription":
+    def add_list_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
         """
         添加列表参数，参数：
             name: 参数名称
@@ -80,7 +80,25 @@ class FunctionDescription:
         self.str_parameters[name] = {
             "type": "array",
             "items": {
-                "type": item_type
+                "type": "string"
+            },
+            "description": description,
+            "required": required
+        }
+        return self
+    
+    def add_dict_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+        """
+        添加字典参数，参数：
+            name: 参数名称
+            description: 参数描述
+            value_type: 字典值的类型，默认为字符串
+            required: 是否必需
+        """
+        self.str_parameters[name] = {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
             },
             "description": description,
             "required": required
@@ -125,6 +143,9 @@ class FunctionDescription:
             # 如果是数组类型,需要添加 items 字段
             if info["type"] == "array" and "items" in info:
                 param_def["items"] = info["items"]
+            # 如果是对象类型,需要添加 additionalProperties 字段
+            if info["type"] == "object" and "additionalProperties" in info:
+                param_def["additionalProperties"] = info["additionalProperties"]
             
             props[name] = param_def
             if info.get("required"):
