@@ -9,7 +9,7 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 
 # 戳一戳
 func_desc_poke = FunctionDescription(name="poke_doctor", description="戳一戳指定博士")
-func_desc_poke.add_str_param(name="id", description="博士的唯一标识符", required=True)
+func_desc_poke.add_param(name="id", description="博士的唯一标识符", required=True)
 func_desc_poke.add_injection_param(name="group_id", description="群组的唯一标识符")
 
 @function_container.function_calling(func_desc_poke)

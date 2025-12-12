@@ -36,69 +36,84 @@ class FunctionDescription:
         self.enum_parameters = {}
         self.injection_parameters = {}
 
-    def add_str_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+    def add_param(self, name: str, description: str, param_type: str = "string", required: bool = False) -> "FunctionDescription":
         """
         添加参数，参数：
             name: 参数名称
-            param_type: 参数类型
             description: 参数描述
+            param_type: 参数类型，默认为 "string"
+                支持的类型：
+                - "string": 字符串
+                - "number": 数字（浮点数）
+                - "integer": 整数
+                - "boolean": 布尔值
+                - "object": 对象
+                - "array": 数组（使用 add_list_param 更方便）
             required: 是否必需
         返回值：
             返回函数描述对象本身，支持链式调用
         """
         self.str_parameters[name] = {
-            "type": "string",
+            "type": param_type,
             "description": description,
             "required": required
         }
         return self
     
-    def add_enum_param(self, name: str, description: str, enum_values: List[str], required: bool = False) -> "FunctionDescription":
+    def add_str_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+        """
+        添加字符串参数（便捷方法）
+        等同于 add_param(name, description, "string", required)
+        """
+        return self.add_param(name, description, "string", required)
+    
+    def add_enum_param(self, name: str, description: str, enum_values: List[str], enum_type: str = "string", required: bool = False) -> "FunctionDescription":
         """
         添加枚举参数，参数：
             name: 参数名称
             description: 参数描述
             enum_values: 枚举值列表
+            enum_type: 枚举类型，默认为 "string"，可选 "number"、"integer"、"boolean" 等
             required: 是否必需
         """
         self.enum_parameters[name] = {
-            "type": "string",
+            "type": enum_type,
             "description": description,
             "enum": enum_values,
             "required": required
         }
         return self
     
-    def add_list_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+    def add_list_param(self, name: str, description: str, item_type: str = "string", required: bool = False) -> "FunctionDescription":
         """
         添加列表参数，参数：
             name: 参数名称
             description: 参数描述
-            item_type: 列表项类型，默认为字符串
+            item_type: 列表项类型，默认为 "string"，可选 "number"、"integer"、"boolean"、"object" 等
             required: 是否必需
         """
         self.str_parameters[name] = {
             "type": "array",
             "items": {
-                "type": "string"
+                "type": item_type
             },
             "description": description,
             "required": required
         }
         return self
     
-    def add_dict_param(self, name: str, description: str, required: bool = False) -> "FunctionDescription":
+    def add_dict_param(self, name: str, description: str, value_type: str = "string", required: bool = False) -> "FunctionDescription":
         """
         添加字典参数，参数：
             name: 参数名称
             description: 参数描述
-            value_type: 字典值的类型，默认为字符串
+            value_type: 字典值的类型，默认为 "string"，可选 "number"、"integer"、"boolean"、"object" 等
             required: 是否必需
         """
         self.str_parameters[name] = {
             "type": "object",
             "additionalProperties": {
-                "type": "string"
+                "type": value_type
             },
             "description": description,
             "required": required
@@ -117,8 +132,8 @@ class FunctionDescription:
             参数注入使用变量名进行匹配，这些参数由 FunctionCalling 类提供，如果想添加更多注入参数，请修改 ModelPool 类的注入参数字典
             然后修改此方法的 name 参数类型提示，在其中添加新的参数名称
         可用的注入参数名称包括：
-            group_id: 当前上下文所在群组 ID
-            user_id: 触发本次事件用户的 ID
+            - group_id: 当前上下文所在群组 ID
+            - user_id: 触发本次事件用户的 ID
         """
         if description == "":
             description = f"注入参数: {name}"
@@ -134,16 +149,18 @@ class FunctionDescription:
         props = {}
         required_list = []
         
-        # 遍历字符串参数
+        # 遍历普通参数（string, array, object 等）
         for name, info in self.str_parameters.items():
             param_def = {
                 "type": info["type"],
                 "description": info["description"]
             }
-            # 如果是数组类型,需要添加 items 字段
+            
+            # 如果是数组类型，添加 items 字段
             if info["type"] == "array" and "items" in info:
                 param_def["items"] = info["items"]
-            # 如果是对象类型,需要添加 additionalProperties 字段
+            
+            # 如果是对象类型，添加 additionalProperties 字段
             if info["type"] == "object" and "additionalProperties" in info:
                 param_def["additionalProperties"] = info["additionalProperties"]
             
@@ -169,7 +186,7 @@ class FunctionDescription:
         if required_list:
             parameters_schema["required"] = required_list
         
-        # 构建完整的工具 schema（包含 type 字段）
+        # 构建完整的工具 schema
         schema = {
             "type": "function",
             "function": {
