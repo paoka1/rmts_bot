@@ -195,3 +195,38 @@ async def get_group_global_memories(keys: list, group_id: str) -> str:
         return f"全局信息：\n{result}\n\n但这些信息不存在：{missing}"
     else:
         return f"全局信息：\n{result}"
+
+# 获取用户所有记忆键
+func_desc_get_user_keys = FunctionDescription(
+    name="get_user_all_keys",
+    description="在终端读取指定博士的所有信息键"
+)
+func_desc_get_user_keys.add_injection_param(name="group_id", description="群组的唯一标识符")
+func_desc_get_user_keys.add_injection_param(name="user_id", description="用户的唯一标识符")
+
+@function_container.function_calling(func_desc_get_user_keys)
+async def get_user_all_keys(group_id: str, user_id: str) -> str:
+    keys = mem_manager.get_user_all_keys(group_id, user_id)
+    
+    if not keys:
+        return "博士还没有任何记录的信息"
+    
+    keys_str = ", ".join(keys)
+    return f"博士的所有信息键：{keys_str}"
+
+# 获取群组全局所有记忆键
+func_desc_get_group_keys = FunctionDescription(
+    name="get_group_global_all_keys",
+    description="在终端读取所有全局信息键"
+)
+func_desc_get_group_keys.add_injection_param(name="group_id", description="群组的唯一标识符")
+
+@function_container.function_calling(func_desc_get_group_keys)
+async def get_group_global_all_keys(group_id: str) -> str:
+    keys = mem_manager.get_group_global_all_keys(group_id)
+    
+    if not keys:
+        return "还没有任何记录的全局信息"
+    
+    keys_str = ", ".join(keys)
+    return f"所有全局信息键：{keys_str}"

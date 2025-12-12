@@ -49,6 +49,14 @@ class Memory:
         """
         return {key: self.memory_data[key] for key in key if key in self.memory_data}
     
+    def get_all_keys(self) -> List[str]:
+        """
+        获取所有记忆键
+        返回：
+            所有记忆键的列表
+        """
+        return list(self.memory_data.keys())
+    
     def to_dict(self) -> Dict:
         """
         将记忆对象转换为字典
@@ -117,6 +125,18 @@ class GroupMemory:
         if user_id in self.user_memories:
             return self.user_memories[user_id].get_memory(keys)
         return {}
+    
+    def get_user_all_keys(self, user_id: str) -> List[str]:
+        """
+        获取指定用户的所有记忆键
+        参数：
+            user_id: 用户的唯一标识符
+        返回：
+            用户所有记忆键的列表
+        """
+        if user_id in self.user_memories:
+            return self.user_memories[user_id].get_all_keys()
+        return []
     
     def to_dict(self) -> Dict:
         """
@@ -226,6 +246,31 @@ class MemoryManager:
         if group_id in self.group_memories:
             return self.group_memories[group_id].group_golbal_memory.get_memory(keys)
         return {}
+    
+    def get_user_all_keys(self, group_id: str, user_id: str) -> List[str]:
+        """
+        获取指定群组和用户的所有记忆键
+        参数：
+            group_id: 群组的唯一标识符
+            user_id: 用户的唯一标识符
+        返回：
+            用户所有记忆键的列表
+        """
+        if group_id in self.group_memories:
+            return self.group_memories[group_id].get_user_all_keys(user_id)
+        return []
+    
+    def get_group_global_all_keys(self, group_id: str) -> List[str]:
+        """
+        获取指定群组的所有全局记忆键
+        参数：
+            group_id: 群组的唯一标识符
+        返回：
+            群组所有全局记忆键的列表
+        """
+        if group_id in self.group_memories:
+            return self.group_memories[group_id].group_golbal_memory.get_all_keys()
+        return []
     
     async def save_group_memory(self, group_id: str) -> bool:
         """
