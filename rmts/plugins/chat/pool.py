@@ -26,10 +26,11 @@ class ModelPool:
         self.model = get_driver().config.model_name
         self.max_history_length = get_driver().config.max_history_length
 
-    async def chat(self, group_id: int, user_message: str) -> Optional[str]:
+    async def chat(self, group_id: int, user_id:int, user_message: str) -> Optional[str]:
         """
         参数：
             group_id: 群号
+            user_id: 用户 ID
             user_message: 用户发送的消息
         """
         # 确保该群组有对应的锁
@@ -39,7 +40,7 @@ class ModelPool:
         # 使用锁确保同一群组的消息顺序处理
         async with self.locks[group_id]:
             if group_id not in self.pool: # 懒加载
-                injection_params = {"group_id": str(group_id)} # 注入参数
+                injection_params = {"group_id": str(group_id)} # 注入参数，在 Model 中也会动态注入参数
                 function_calling = FunctionCalling(self.function_container, injection_params)
 
                 model = Model(group_id=group_id,
@@ -50,7 +51,7 @@ class ModelPool:
                               max_history=self.max_history_length)
                 await model.init_model()
                 self.pool[group_id] = model
-            return await self.pool[group_id].chat(user_message)
+            return await self.pool[group_id].chat(user_message, user_id)
 
     async def clear_history(self, group_id: int):
         """

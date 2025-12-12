@@ -26,7 +26,7 @@ async def rmts_chat(event: GroupMessageEvent):
     text = event.get_plaintext().strip()
     nickname = event.sender.card if event.sender.card else event.sender.nickname
     user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）对你说：" + text
-    reply = await model_pool.chat(event.group_id, user_message)
+    reply = await model_pool.chat(event.group_id, event.user_id, user_message)
     if reply:
         await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
     else:
@@ -49,7 +49,7 @@ async def handle_poke(bot: Bot, event: PokeNotifyEvent):
     text = random.choice(poke_msgs).format(nickname, event.user_id)
     if event.group_id is None: # 私聊戳一戳不回复
         await poke_handler.finish()
-    reply = await model_pool.chat(event.group_id, text)
+    reply = await model_pool.chat(event.group_id, event.user_id, text)
     if reply:
         await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
     else:

@@ -71,7 +71,7 @@ class FunctionDescription:
         }
         return self
     
-    def add_injection_parameter(self, name: Literal["group_id"], description: str) -> "FunctionDescription":
+    def add_injection_parameter(self, name: Literal["group_id", "user_id"], description: str) -> "FunctionDescription":
         """
         添加注入参数，参数：
             name: 参数名称
@@ -82,6 +82,9 @@ class FunctionDescription:
             此方法用于在 function calling 函数中注入不需要 LLM 提供的参数，如果 LLM 提供了这些参数，则不会覆盖
             参数注入使用变量名进行匹配，这些参数由 FunctionCalling 类提供，如果想添加更多注入参数，请修改 ModelPool 类的注入参数字典
             然后修改此方法的 name 参数类型提示，在其中添加新的参数名称
+        可用的注入参数名称包括：
+            group_id: 当前上下文所在群组 ID
+            user_id: 触发本次事件用户的 ID
         """
         self.injection_parameters[name] = {
             "description": description
@@ -260,6 +263,12 @@ class FunctionCalling:
         except Exception as e:
             logger.exception(f"函数 {name} 调用出错，参数: {args}")
             return f"函数调用出错: {e}"
+        
+    def add_injection_param(self, name: str, value: str) -> None:
+        """
+        添加注入参数
+        """
+        self.injection_params[name] = value
         
     def to_schemas_str(self) -> str:
         """
