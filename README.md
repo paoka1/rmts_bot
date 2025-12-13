@@ -1,6 +1,6 @@
 # rmts bot
 
-以迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架和 OneBotv11 协议开发，支持 AI 对话（支持对 Function Calling 的插件式开发）、B站直播推送、互动游戏等多种功能
+以迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架和 OneBotv11 协议开发，支持 AI 对话、B站直播推送、互动游戏等多种功能
 
 ## 功能介绍
 
@@ -34,7 +34,7 @@
 - Python >= 3.9, < 4.0
 - OneBot V11 协议端（如 [NapCat](https://napneko.github.io/) 等）
 
-### 安装步骤
+### 部署步骤
 
 1.克隆项目
 

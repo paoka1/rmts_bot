@@ -6,4 +6,3 @@ def split_groups(groups_str) -> list[str]:
     if groups == [""]:
         return []
     return groups
-
