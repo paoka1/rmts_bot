@@ -1,5 +1,5 @@
 """
-和记忆相关的函数调用
+和记忆或信息存储相关的函数调用
 """
 
 from nonebot import get_driver
