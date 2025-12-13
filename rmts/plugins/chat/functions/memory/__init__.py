@@ -40,8 +40,11 @@ func_desc_add_memories.add_injection_param(name="group_id", description="群组�
 
 @function_container.function_calling(func_desc_add_memories)
 async def add_user_memories(memories: dict, group_id: str, doctor_id: str, user_id: str) -> str:
-    if user_id != doctor_id: # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
+    # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
+    # 只允许任何人对群组信息的修改，以及用户对自己的信息的修改
+    if doctor_id != group_id and user_id != doctor_id:
         return f"id为{user_id}的博士想要修改id为{doctor_id}博士的信息，这是不允许的"
+
     await mem_manager.add_memories(group_id, doctor_id, memories)
     keys = ", ".join(memories.keys())
     return f"已成功记下博士的信息：{keys}"
