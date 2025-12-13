@@ -34,7 +34,7 @@
 - Python >= 3.9, < 4.0
 - OneBot V11 协议端（如 [NapCat](https://napneko.github.io/) 等）
 
-### 安装步骤
+### 部署步骤
 
 1.克隆项目
 
