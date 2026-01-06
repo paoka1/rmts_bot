@@ -31,11 +31,10 @@ query_status_handler = on_fullmatch(fullmatch_words, rule=to_me() & is_type(Grou
 
 @query_status_handler.handle()
 async def handle_query_status(event: GroupMessageEvent):
-    if event.group_id not in available_groups:
+    if str(event.group_id) not in available_groups:
         await query_status_handler.finish("功能未启用")
 
     status = server.get_status()
-
     if not status:
         # 服务器离线
         text = f"服务器离线:("
