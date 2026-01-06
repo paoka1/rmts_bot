@@ -51,10 +51,8 @@ async def handle_query_status(event: GroupMessageEvent):
         # 获取在线玩家列表
         sample = players_info.get('sample', [])
         if sample and online_count > 0:
-            text += "在线玩家："
-            for player in sample:
-                player_name = player.get('name', '未知玩家')
-                text += f"{player_name}，"
+            player_names = [player.get('name', '未知玩家') for player in sample]
+            text += "在线玩家：" + "，".join(player_names)
         elif online_count > 0:
             text += "玩家列表不可用"
         else:
