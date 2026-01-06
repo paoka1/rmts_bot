@@ -34,7 +34,7 @@ async def handle_query_status(event: GroupMessageEvent):
     if str(event.group_id) not in available_groups:
         await query_status_handler.finish("功能未启用")
 
-    status = server.get_status()
+    status = await server.async_get_status()
     if not status:
         # 服务器离线
         text = f"服务器离线:("

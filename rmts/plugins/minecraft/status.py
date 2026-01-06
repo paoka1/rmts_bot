@@ -1,18 +1,17 @@
 """
 Minecraft服务器状态查询模块
-使用原生TCP协议查询Minecraft服务器的公开信息
+使用mcstatus库查询Minecraft服务器的公开信息
 """
 
-import socket
-import struct
-import json
-from typing import Dict, Any, Optional, Tuple
+import asyncio
+from typing import Dict, Any, Optional
+from mcstatus import JavaServer
 
 
 class MinecraftServerStatus:
     """
     Minecraft服务器状态查询类
-    使用Server List Ping (SLP)协议查询服务器状态信息
+    使用mcstatus库实现异步查询
     """
     
     def __init__(self, host: str, port: int = 25565, timeout: float = 5.0):
@@ -27,156 +26,11 @@ class MinecraftServerStatus:
         self.host = host
         self.port = port
         self.timeout = timeout
-        
-    def _pack_varint(self, value: int) -> bytes:
-        """
-        将整数打包为VarInt格式
-        
-        Args:
-            value: 要打包的整数（必须是非负整数）
-            
-        Returns:
-            VarInt格式的字节数据
-        """
-        if value < 0:
-            raise ValueError(f"VarInt不支持负数: {value}")
-            
-        result = bytearray()
-        while True:
-            temp = value & 0x7F
-            value >>= 7
-            if value != 0:
-                temp |= 0x80
-            result.append(temp)
-            if value == 0:
-                break
-        return bytes(result)
+        self._server = JavaServer(host, port)
     
-    def _unpack_varint(self, data: bytes, offset: int = 0) -> Tuple[int, int]:
+    async def async_get_status(self) -> Optional[Dict[str, Any]]:
         """
-        从字节数据中解包VarInt
-        
-        Args:
-            data: 字节数据
-            offset: 起始偏移量
-            
-        Returns:
-            (解包的整数值, 读取的字节数)
-        """
-        result = 0
-        shift = 0
-        bytes_read = 0
-        
-        while True:
-            if offset + bytes_read >= len(data):
-                raise ValueError("VarInt数据不完整")
-                
-            byte = data[offset + bytes_read]
-            bytes_read += 1
-            
-            result |= (byte & 0x7F) << shift
-            shift += 7
-            
-            if not (byte & 0x80):
-                break
-                
-            if bytes_read > 5:
-                raise ValueError("VarInt过长")
-                
-        return result, bytes_read
-    
-    def _create_handshake_packet(self) -> bytes:
-        """
-        创建握手数据包
-        
-        Returns:
-            握手数据包字节数据
-        """
-        # 协议版本号 (使用-1需要特殊处理，这里使用47即1.8+的协议版本)
-        # 对于状态查询，大多数服务器接受任何合理的协议版本号
-        protocol_version = self._pack_varint(47)
-        
-        # 服务器地址
-        server_address = self.host.encode('utf-8')
-        server_address_length = self._pack_varint(len(server_address))
-        
-        # 服务器端口 (unsigned short)
-        server_port = struct.pack('>H', self.port)
-        
-        # 下一个状态 (1表示status)
-        next_state = self._pack_varint(1)
-        
-        # 组装数据
-        data = protocol_version + server_address_length + server_address + server_port + next_state
-        
-        # 添加包ID (0x00 表示握手)
-        packet_id = self._pack_varint(0x00)
-        packet_data = packet_id + data
-        
-        # 添加包长度
-        packet_length = self._pack_varint(len(packet_data))
-        
-        return packet_length + packet_data
-    
-    def _create_status_request_packet(self) -> bytes:
-        """
-        创建状态请求数据包
-        
-        Returns:
-            状态请求数据包字节数据
-        """
-        # 包ID (0x00)
-        packet_id = self._pack_varint(0x00)
-        
-        # 包长度
-        packet_length = self._pack_varint(len(packet_id))
-        
-        return packet_length + packet_id
-    
-    def _read_packet(self, sock: socket.socket) -> bytes:
-        """
-        从socket读取一个完整的数据包
-        
-        Args:
-            sock: socket对象
-            
-        Returns:
-            数据包内容（不含长度字段）
-        """
-        # 读取包长度
-        length_data = bytearray()
-        while True:
-            byte = sock.recv(1)
-            if not byte:
-                raise ConnectionError("连接已关闭")
-            
-            length_data.append(byte[0])
-            
-            # VarInt最后一个字节的最高位为0
-            if not (byte[0] & 0x80):
-                break
-                
-            if len(length_data) > 5:
-                raise ValueError("包长度VarInt过长")
-        
-        packet_length, _ = self._unpack_varint(bytes(length_data))
-        
-        # 读取包内容
-        packet_data = bytearray()
-        remaining = packet_length
-        
-        while remaining > 0:
-            chunk = sock.recv(remaining)
-            if not chunk:
-                raise ConnectionError("连接已关闭")
-            packet_data.extend(chunk)
-            remaining -= len(chunk)
-        
-        return bytes(packet_data)
-    
-    def get_status(self) -> Optional[Dict[str, Any]]:
-        """
-        查询服务器状态
+        异步查询服务器状态
         
         Returns:
             服务器状态信息字典，包含以下字段：
@@ -187,53 +41,75 @@ class MinecraftServerStatus:
             如果查询失败则返回None
         """
         try:
-            # 创建TCP连接
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(self.timeout)
-                sock.connect((self.host, self.port))
-                
-                # 发送握手包
-                handshake_packet = self._create_handshake_packet()
-                sock.sendall(handshake_packet)
-                
-                # 发送状态请求包
-                status_request_packet = self._create_status_request_packet()
-                sock.sendall(status_request_packet)
-                
-                # 读取响应
-                response_data = self._read_packet(sock)
-                
-                # 解析响应
-                packet_id, offset = self._unpack_varint(response_data)
-                
-                if packet_id != 0x00:
-                    raise ValueError(f"意外的包ID: {packet_id}")
-                
-                # 读取JSON字符串长度
-                json_length, bytes_read = self._unpack_varint(response_data, offset)
-                offset += bytes_read
-                
-                # 读取JSON字符串
-                json_data = response_data[offset:offset + json_length].decode('utf-8')
-                
-                # 解析JSON
-                status = json.loads(json_data)
-                
-                return status
-                
-        except socket.timeout:
+            # 使用异步方法查询状态
+            status = await asyncio.wait_for(
+                self._server.async_status(),
+                timeout=self.timeout
+            )
+            
+            # 构建返回字典，保持与原实现一致的格式
+            result = {
+                'version': {
+                    'name': status.version.name,
+                    'protocol': status.version.protocol
+                },
+                'players': {
+                    'max': status.players.max,
+                    'online': status.players.online,
+                    'sample': []
+                },
+                'description': status.description
+            }
+            
+            # 添加在线玩家列表（如果有）
+            if status.players.sample:
+                result['players']['sample'] = [
+                    {'name': player.name, 'id': player.id}
+                    for player in status.players.sample
+                ]
+            
+            # 添加favicon（如果有）
+            if hasattr(status, 'icon') and status.icon:
+                result['favicon'] = status.icon
+            
+            return result
+            
+        except asyncio.TimeoutError:
             print(f"连接超时: {self.host}:{self.port}")
-            return None
-        except socket.error as e:
-            print(f"Socket错误: {e}")
             return None
         except Exception as e:
             print(f"查询失败: {e}")
             return None
     
-    def get_simple_status(self) -> Optional[Dict[str, Any]]:
+    def get_status(self) -> Optional[Dict[str, Any]]:
         """
-        获取简化的服务器状态信息
+        同步查询服务器状态（内部使用asyncio）
+        
+        Returns:
+            服务器状态信息字典，包含以下字段：
+            - version: 版本信息 (name, protocol)
+            - players: 玩家信息 (max, online, sample)
+            - description: 服务器描述
+            - favicon: 服务器图标（base64编码）
+            如果查询失败则返回None
+        """
+        try:
+            # 获取或创建事件循环
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # 没有运行中的循环，创建新的
+                return asyncio.run(self.async_get_status())
+            else:
+                # 已经在事件循环中，创建任务
+                return loop.run_until_complete(self.async_get_status())
+        except Exception as e:
+            print(f"查询失败: {e}")
+            return None
+    
+    async def async_get_simple_status(self) -> Optional[Dict[str, Any]]:
+        """
+        异步获取简化的服务器状态信息
         
         Returns:
             简化的状态信息字典，包含：
@@ -244,7 +120,7 @@ class MinecraftServerStatus:
             - description: 服务器描述
             如果查询失败则返回None
         """
-        status = self.get_status()
+        status = await self.async_get_status()
         
         if not status:
             return {
@@ -270,13 +146,53 @@ class MinecraftServerStatus:
             'description': desc_text
         }
     
+    def get_simple_status(self) -> Optional[Dict[str, Any]]:
+        """
+        同步获取简化的服务器状态信息
+        
+        Returns:
+            简化的状态信息字典，包含：
+            - online: 是否在线
+            - version: 服务器版本
+            - players_online: 在线玩家数
+            - players_max: 最大玩家数
+            - description: 服务器描述
+            如果查询失败则返回None
+        """
+        try:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return asyncio.run(self.async_get_simple_status())
+            else:
+                return loop.run_until_complete(self.async_get_simple_status())
+        except Exception as e:
+            print(f"查询失败: {e}")
+            return None
+    
     def __repr__(self) -> str:
         return f"MinecraftServerStatus(host='{self.host}', port={self.port})"
 
 
+async def async_query_server(host: str, port: int = 25565, timeout: float = 5.0) -> Optional[Dict[str, Any]]:
+    """
+    便捷函数：异步查询Minecraft服务器状态
+    
+    Args:
+        host: 服务器地址
+        port: 服务器端口，默认25565
+        timeout: 超时时间，默认5秒
+        
+    Returns:
+        服务器状态信息字典，失败返回None
+    """
+    server = MinecraftServerStatus(host, port, timeout)
+    return await server.async_get_status()
+
+
 def query_server(host: str, port: int = 25565, timeout: float = 5.0) -> Optional[Dict[str, Any]]:
     """
-    便捷函数：查询Minecraft服务器状态
+    便捷函数：同步查询Minecraft服务器状态
     
     Args:
         host: 服务器地址
@@ -291,6 +207,8 @@ def query_server(host: str, port: int = 25565, timeout: float = 5.0) -> Optional
 
 
 if __name__ == '__main__':
+    import json
+    
     # 示例用法
     address = input("请输入Minecraft服务器地址 (格式: host:port): ")
     if ':' in address:
