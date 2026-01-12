@@ -68,7 +68,7 @@ async def handle_query_status(event: GroupMessageEvent):
 
 
 # 定时任务，定期查询服务器状态，并推送玩家状态变化
-@scheduler.scheduled_job('interval', seconds=30)  # 每半分钟查询一次
+@scheduler.scheduled_job('interval', seconds=60)  # 每一分钟执行一次
 async def scheduled_minecraft_status_check():
     """定时检查服务器状态并推送玩家变化信息"""
     # 查询服务器状态
