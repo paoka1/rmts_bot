@@ -83,3 +83,52 @@ class MinecraftServerStatus:
     
     def __repr__(self) -> str:
         return f"MinecraftServerStatus(host='{self.host}', port={self.port})"
+
+
+class MinecraftPlayerStatus:
+    """
+    Minecraft玩家状态类
+    用于表示玩家的在线状态
+    """
+
+    def __init__(self) -> None:
+        # 在线玩家列表
+        self.online_players = set()
+
+    def update_status(self, server_status: bool, online_players: Optional[set]) -> Optional[Dict[str, Any]]:
+        """
+        更新玩家状态
+        
+        Args:
+            server_status: 服务器当前在线状态
+            online_players: 当前在线玩家列表
+            
+        Returns:
+            如果有玩家状态变化，返回变化信息字典，否则返回None
+        """
+        changes = {}
+        
+        if not server_status:
+            # 服务器离线，清空在线玩家列表
+            if self.online_players:
+                changes['newly_offline'] = list(self.online_players)
+                self.online_players.clear()
+            return changes if changes else None
+        
+        # 服务器在线，检查玩家状态变化
+        new_online_players = online_players if online_players is not None else set()
+        
+        # 检查新上线的玩家
+        newly_online = new_online_players - self.online_players
+        if newly_online:
+            changes['newly_online'] = list(newly_online)
+        
+        # 检查下线的玩家
+        newly_offline = self.online_players - new_online_players
+        if newly_offline:
+            changes['newly_offline'] = list(newly_offline)
+        
+        # 更新当前在线玩家列表
+        self.online_players = new_online_players
+        
+        return changes if changes else None

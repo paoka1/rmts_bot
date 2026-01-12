@@ -1,12 +1,16 @@
-from nonebot import get_driver
+from nonebot import require
+from nonebot import get_driver, get_bot
 from nonebot.rule import is_type, to_me
 from nonebot import on_fullmatch
-from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.adapters.onebot.v11 import MessageSegment, Bot
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 from rmts.utils.config import split_groups
 
 from .status import MinecraftServerStatus
+from .status import MinecraftPlayerStatus
+
+scheduler = require('nonebot_plugin_apscheduler').scheduler
 
 # 读取配置信息
 config = get_driver().config
@@ -23,8 +27,10 @@ if ':' in server_addr:
 else:
     host = server_addr
     port = 25565
+
 # 创建Minecraft服务器状态查询对象
 server = MinecraftServerStatus(host, port, timeout=5.0)
+player_status = MinecraftPlayerStatus()
 
 fullmatch_words = ("查询服务器状态", "服务器状态", "查询状态")
 query_status_handler = on_fullmatch(fullmatch_words, rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
@@ -59,3 +65,48 @@ async def handle_query_status(event: GroupMessageEvent):
             text += "当前无玩家在线"
     
     await query_status_handler.finish(MessageSegment.reply(event.message_id) + text)
+
+
+# 定时任务，定期查询服务器状态，并推送玩家状态变化
+@scheduler.scheduled_job('interval', seconds=30)  # 每半分钟查询一次
+async def scheduled_minecraft_status_check():
+    """定时检查服务器状态并推送玩家变化信息"""
+    # 查询服务器状态
+    status = await server.async_get_status()
+    
+    # 解析在线玩家
+    if status:
+        players_info = status.get('players', {})
+        sample = players_info.get('sample', [])
+        online_players = set(player.get('name') for player in sample if player.get('name'))
+        changes = player_status.update_status(server_status=True, online_players=online_players)
+    else:
+        # 服务器离线
+        changes = player_status.update_status(server_status=False, online_players=None)
+    
+    # 如果有变化，构建消息并推送
+    if changes:
+        message_parts = []
+        
+        # 处理上线玩家
+        if 'newly_online' in changes:
+            online_players = changes['newly_online']
+            message_parts.append(f"{'、'.join(online_players)}上线了")
+        
+        # 处理下线玩家
+        if 'newly_offline' in changes:
+            offline_players = changes['newly_offline']
+            message_parts.append(f"{'、'.join(offline_players)}下线了")
+        
+        # 合并消息
+        if message_parts:
+            message_text = "玩家：" + "，".join(message_parts)
+            
+            # 向所有可用群组推送消息
+            bot = get_bot()
+            for group_id in available_groups:
+                try:
+                    await bot.send_group_msg(group_id=int(group_id), message=message_text)
+                except Exception as e:
+                    print(f"向群 {group_id} 发送消息失败: {e}")
+
