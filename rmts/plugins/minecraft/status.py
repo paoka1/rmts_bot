@@ -94,6 +94,8 @@ class MinecraftPlayerStatus:
     def __init__(self) -> None:
         # 在线玩家列表
         self.online_players = set()
+        # 首次检查标志，用于防止启动时推送消息
+        self.is_first_check = True
 
     def update_status(self, server_status: bool, online_players: Optional[set]) -> Optional[Dict[str, Any]]:
         """
@@ -105,6 +107,7 @@ class MinecraftPlayerStatus:
             
         Returns:
             如果有玩家状态变化，返回变化信息字典，否则返回None
+            注意：首次调用时只会更新状态，不会返回变化信息
         """
         changes = {}
         
@@ -113,22 +116,26 @@ class MinecraftPlayerStatus:
             if self.online_players:
                 changes['newly_offline'] = list(self.online_players)
                 self.online_players.clear()
-            return changes if changes else None
+        else:
+            # 服务器在线，检查玩家状态变化
+            new_online_players = online_players if online_players is not None else set()
+            
+            # 检查新上线的玩家
+            newly_online = new_online_players - self.online_players
+            if newly_online:
+                changes['newly_online'] = list(newly_online)
+            
+            # 检查下线的玩家
+            newly_offline = self.online_players - new_online_players
+            if newly_offline:
+                changes['newly_offline'] = list(newly_offline)
+            
+            # 更新当前在线玩家列表
+            self.online_players = new_online_players
         
-        # 服务器在线，检查玩家状态变化
-        new_online_players = online_players if online_players is not None else set()
-        
-        # 检查新上线的玩家
-        newly_online = new_online_players - self.online_players
-        if newly_online:
-            changes['newly_online'] = list(newly_online)
-        
-        # 检查下线的玩家
-        newly_offline = self.online_players - new_online_players
-        if newly_offline:
-            changes['newly_offline'] = list(newly_offline)
-        
-        # 更新当前在线玩家列表
-        self.online_players = new_online_players
+        # 首次检查时，只更新状态不返回变化
+        if self.is_first_check:
+            self.is_first_check = False
+            return None
         
         return changes if changes else None
