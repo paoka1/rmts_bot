@@ -34,7 +34,7 @@ async def add_user_info(info: list, group_id: int, doctor_id: int, user_id: int)
     # user_id: 触发函数的用户， doctor_id: AI 想要修改记忆的用户
     # 只允许用户对自己的信息的修改
     if user_id != doctor_id:
-        return f"id为{user_id}的博士想要修改id为{doctor_id}博士的信息，这是不可以的"
+        return f"ID为{user_id}的博士想要修改ID为{doctor_id}博士的信息，这是不可以的"
     await mem_manager.add_memories(str(group_id), str(doctor_id), [Memory(m) for m in info])
     return f"已成功记下博士的信息"
 
@@ -63,6 +63,7 @@ async def add_group_global_info(info: list, group_id: int) -> str:
 # 获取群组所有全局记忆
 func_desc_get_group_all_info = FunctionDescription("get_group_global_all_info", "在终端读取所有全局信息")
 func_desc_get_group_all_info.add_injection_param(name="group_id", description="群组的唯一标识符")
+
 @function_container.function_calling(func_desc_get_group_all_info)
 async def get_group_global_all_info(group_id: int) -> str:
     memories = await mem_manager.get_user_memories(str(group_id), str(group_id))

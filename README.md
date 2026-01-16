@@ -163,7 +163,7 @@ func_desc.add_list_param(name="param3", description="列表参数", item_type="i
 func_desc.add_dict_param(name="param4", description="字典参数", value_type="string", required=False)
 
 # 添加注入参数（系统自动提供，AI 无需传递）
-func_desc.add_injection_param(name="group_id", description="群组ID")
+func_desc.add_injection_param(name="group_id", description="群组的唯一标识符")
 
 # 使用装饰器注册函数
 @function_container.function_calling(func_desc)
@@ -177,7 +177,7 @@ async def function_name(param1: str, param2: str, param3: list, param4: dict, gr
 - `add_enum_param`: 枚举参数（从预定义选项中选择）
 - `add_list_param`: 列表参数（可指定元素类型）
 - `add_dict_param`: 字典参数（可指定值类型）
-- `add_injection_param`: 注入参数（系统自动提供，如 `group_id`、`user_id`）
+- `add_injection_param`: 注入参数（系统自动提供，如 `group_id`、`user_id`等...）
 
 Function Calling 函数应拥有一个 `str` 类型的返回值，对参数的数量没有要求
 
