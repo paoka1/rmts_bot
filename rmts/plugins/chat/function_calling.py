@@ -246,7 +246,7 @@ class FunctionCalling:
     to_schemas 方法用于获取所有函数的 Function Calling 描述
     """
 
-    def __init__(self, function_container: FunctionContainer, injection_params: Dict[str, str] = {}):
+    def __init__(self, function_container: FunctionContainer, injection_params: Dict[str, Any] = {}):
         """
         参数：
             function_container: 全局唯一的函数容器实例
@@ -255,7 +255,7 @@ class FunctionCalling:
 
         self.functions: Dict[str, Callable] = function_container.functions
         self.function_descriptions: Dict[str, FunctionDescription] = function_container.function_descriptions
-        self.injection_params: Dict[str, str] = injection_params
+        self.injection_params: Dict[str, Any] = injection_params
 
         # debug 使用
         # logger.info(f"function tools str: \n{self.to_schemas_str()}\n")
@@ -305,7 +305,7 @@ class FunctionCalling:
             logger.exception(f"函数 {name} 调用出错，参数: {args}")
             return f"函数调用出错: {e}"
         
-    def add_injection_param(self, name: str, value: str) -> None:
+    def add_injection_param(self, name: str, value: Any) -> None:
         """
         添加注入参数
         """
