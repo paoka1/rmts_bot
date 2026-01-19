@@ -73,7 +73,7 @@ class MinecraftServerStatus:
                 
                 # 如果启用了过滤fake_开头的玩家
                 if ignore_fake_players:
-                    players = [p for p in players if not p['name'].startswith('fake_')]
+                    players = [p for p in players if not p['name'].lower().startswith('fake_')]
                     # 更新在线人数
                     result['players']['online'] = len(players)
                 
