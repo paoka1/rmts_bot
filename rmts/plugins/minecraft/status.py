@@ -28,9 +28,12 @@ class MinecraftServerStatus:
         self.timeout = timeout
         self._server = JavaServer(host, port)
     
-    async def async_get_status(self) -> Optional[Dict[str, Any]]:
+    async def async_get_status(self, ignore_fake_players: bool = False) -> Optional[Dict[str, Any]]:
         """
         异步查询服务器状态
+        
+        Args:
+            ignore_fake_players: 是否忽略fake_开头的玩家，默认False
         
         Returns:
             服务器状态信息字典，包含以下字段：
@@ -63,10 +66,18 @@ class MinecraftServerStatus:
             
             # 添加在线玩家列表（如果有）
             if status.players.sample:
-                result['players']['sample'] = [
+                players = [
                     {'name': player.name, 'id': player.id}
                     for player in status.players.sample
                 ]
+                
+                # 如果启用了过滤fake_开头的玩家
+                if ignore_fake_players:
+                    players = [p for p in players if not p['name'].startswith('fake_')]
+                    # 更新在线人数
+                    result['players']['online'] = len(players)
+                
+                result['players']['sample'] = players
             
             # 添加favicon（如果有）
             if hasattr(status, 'icon') and status.icon:

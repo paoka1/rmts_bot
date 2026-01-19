@@ -40,7 +40,7 @@ async def handle_query_status(event: GroupMessageEvent):
     if str(event.group_id) not in available_groups:
         await query_status_handler.finish("功能未启用")
 
-    status = await server.async_get_status()
+    status = await server.async_get_status(ignore_fake_players=True)
     if not status:
         # 服务器离线
         text = f"服务器离线:("
@@ -72,7 +72,7 @@ async def handle_query_status(event: GroupMessageEvent):
 async def scheduled_minecraft_status_check():
     """定时检查服务器状态并推送玩家变化信息"""
     # 查询服务器状态
-    status = await server.async_get_status()
+    status = await server.async_get_status(ignore_fake_players=True)
     
     # 解析在线玩家
     if status:
