@@ -63,7 +63,7 @@ async def handle_query_status(event: GroupMessageEvent):
             fake_player_names = [name for name in player_names if name.lower().startswith('fake_')]
             real_player_names = [name for name in player_names if name not in fake_player_names]
             if real_player_names:
-                text += "在线玩家：" + "，".join(real_player_names).join("\n")
+                text += "在线玩家：" + "，".join(real_player_names) + "\n"
             else:
                 text += "在线玩家：无\n"
             if fake_player_names:
