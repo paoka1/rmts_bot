@@ -5,6 +5,8 @@ from nonebot import on_fullmatch
 from nonebot.adapters.onebot.v11 import MessageSegment, Bot
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
+from typing import List
+
 from rmts.utils.config import split_groups
 
 from .status import MinecraftServerStatus
@@ -40,7 +42,7 @@ async def handle_query_status(event: GroupMessageEvent):
     if str(event.group_id) not in available_groups:
         await query_status_handler.finish("功能未启用")
 
-    status = await server.async_get_status(ignore_fake_players=True)
+    status = await server.async_get_status()
     if not status:
         # 服务器离线
         text = f"服务器离线:("
@@ -57,8 +59,17 @@ async def handle_query_status(event: GroupMessageEvent):
         # 获取在线玩家列表
         sample = players_info.get('sample', [])
         if sample and online_count > 0:
-            player_names = [player.get('name', '未知玩家') for player in sample]
-            text += "在线玩家：" + "，".join(player_names)
+            player_names: List[str] = [player.get('name', '未知玩家') for player in sample]
+            fake_player_names = [name for name in player_names if name.lower().startswith('fake_')]
+            real_player_names = [name for name in player_names if name not in fake_player_names]
+            if real_player_names:
+                text += "在线玩家：" + "，".join(real_player_names).join("\n")
+            else:
+                text += "在线玩家：无\n"
+            if fake_player_names:
+                text += "在线假人：" + "，".join(fake_player_names)
+            else:
+                text += "在线假人：无"
         elif online_count > 0:
             text += "玩家列表不可用"
         else:
@@ -109,4 +120,3 @@ async def scheduled_minecraft_status_check():
                     await bot.send_group_msg(group_id=int(group_id), message=message_text)
                 except Exception as e:
                     print(f"向群 {group_id} 发送消息失败: {e}")
-
