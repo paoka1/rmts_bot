@@ -32,7 +32,7 @@ else:
 server = MinecraftServerStatus(host, port, timeout=5.0)
 player_status = MinecraftPlayerStatus()
 
-fullmatch_words = ("查询服务器状态", "服务器状态", "查询状态")
+fullmatch_words = ("查询服务器状态", "服务器状态", "查询状态", "状态查询")
 query_status_handler = on_fullmatch(fullmatch_words, rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @query_status_handler.handle()
