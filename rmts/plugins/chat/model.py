@@ -7,6 +7,8 @@ from openai.types.chat import ChatCompletionAssistantMessageParam
 from openai.types.chat import ChatCompletionToolMessageParam
 from openai.types.chat import ChatCompletionMessageFunctionToolCall
 
+from nonebot.log import logger
+
 from typing import List, Union, Optional
 
 from .prompt import prompt
@@ -34,7 +36,8 @@ class Model:
                  model: str = "deepseek-chat",
                  prompt: str = prompt,
                  max_history: int = 10,
-                 temperature: float = 1.5
+                 temperature: float = 1.5,
+                 max_function_calls: int = 10
     ) -> None:
         """
         参数：
@@ -46,6 +49,7 @@ class Model:
             prompt: 系统提示语
             max_history: 最大历史消息条数
             temperature: 温度参数，控制输出随机性
+            max_function_calls: 最大函数调用次数，防止无限循环
         """
 
         self.client: AsyncOpenAI
@@ -57,6 +61,7 @@ class Model:
         self.prompt = prompt
         self.max_history = max_history
         self.temperature = temperature
+        self.max_function_calls = max_function_calls
         self.messages: List[Union[ChatCompletionSystemMessageParam,
                                   ChatCompletionUserMessageParam,
                                   ChatCompletionAssistantMessageParam,
@@ -91,46 +96,61 @@ class Model:
             # 保留系统提示（第一条）和最新的 max_history 条消息
             self.messages = [self.messages[0]] + self.messages[-(self.max_history):]
 
-        # 发起请求
-        response = await self._create_chat_completion()
-        # 获取响应内容
-        response_message = response.choices[0].message
-
-        # 检查是否有工具调用
-        if response_message.tool_calls:
-            self._add_assistant_message_with_tool_calls(response_message)
-            # 执行所有函数调用
-            for tool_call in response_message.tool_calls:
-                if not isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
-                    continue
-
-                function_name = tool_call.function.name
-                function_args = tool_call.function.arguments
-
-                try:
-                    args_dict = json.loads(function_args)
-                    # 调用函数并获取结果
-                    function_response = await self.fc.call(function_name, args_dict)
-                except json.JSONDecodeError:
-                    function_response = f"函数参数解析错误: {function_args}"
-
-                # 添加工具返回结果
-                self.messages.append(ChatCompletionToolMessageParam(
-                    role="tool",
-                    tool_call_id=tool_call.id,
-                    content=function_response
-                ))
-            
-            # 再次调用聊天接口，获取最终响应
-            call_again_response = await self._create_chat_completion()
-            response_message = call_again_response.choices[0].message
-        else: # 没有工具调用，直接使用助手响应
+        # 函数调用计数器
+        function_call_count = 0
+        
+        # 循环处理，直到获得普通消息响应
+        while True:
+            # 发起请求
+            response = await self._create_chat_completion()
+            # 获取响应内容
             response_message = response.choices[0].message
 
-        # 将助手响应添加到历史记录
-        self.messages.append(ChatCompletionAssistantMessageParam(content=response_message.content, role="assistant"))
-        # 返回响应内容
-        return response_message.content
+            # 检查是否有工具调用
+            if response_message.tool_calls:
+                # 增加函数调用计数
+                function_call_count += 1
+                
+                # 检查是否超过最大调用次数
+                if function_call_count > self.max_function_calls:
+                    error_msg = f"函数调用次数超过限制({self.max_function_calls})，已终止调用"
+                    logger.warning(f"[群:{self.group_id}] {error_msg}")
+                    # 将错误信息添加到历史记录
+                    self.messages.append(ChatCompletionAssistantMessageParam(
+                        content=error_msg,
+                        role="assistant"
+                    ))
+                    return error_msg
+                
+                # 将带工具调用的助手消息添加到历史
+                self._add_assistant_message_with_tool_calls(response_message)
+                
+                # 执行所有函数调用
+                for tool_call in response_message.tool_calls:
+                    if not isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
+                        continue
+
+                    function_name = tool_call.function.name
+                    function_args = tool_call.function.arguments
+
+                    try:
+                        args_dict = json.loads(function_args)
+                        # 调用函数并获取结果
+                        function_response = await self.fc.call(function_name, args_dict)
+                    except json.JSONDecodeError:
+                        function_response = f"函数参数解析错误: {function_args}"
+
+                    # 添加工具返回结果
+                    self.messages.append(ChatCompletionToolMessageParam(
+                        role="tool",
+                        tool_call_id=tool_call.id,
+                        content=function_response
+                    ))
+                # 继续循环，再次调用 API
+            else:
+                # 没有工具调用，将普通助手响应添加到历史记录并返回
+                self.messages.append(ChatCompletionAssistantMessageParam(content=response_message.content, role="assistant"))
+                return response_message.content
     
     async def save_messages(self):
         """保存当前会话的消息历史"""
