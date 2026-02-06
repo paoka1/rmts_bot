@@ -55,17 +55,16 @@ class Birthday:
 
     def __init__(self, path: str = "rmts/resources/json/birthday/birthday.json") -> None:
         """
-        初始化
+        参数：
+            path: 生日数据文件的路径
         """
 
-        # 使用相对于当前文件的路径
-        current_dir = Path(__file__).parent.parent.parent.parent.parent
-        self.path = current_dir / "resources" / "json" / "birthday" / "birthday.json"
+        self.path = Path(os.getcwd()) / path
         self.data = self.load_data()
 
     def load_data(self) -> List[Dict[str, str]]:
         """
-        加载数据
+        加载数据，初始化时自动调用
         """
 
         with open(self.path, "r", encoding="utf-8") as f:
