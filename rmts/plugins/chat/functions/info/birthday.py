@@ -91,8 +91,22 @@ class Birthday:
         now = datetime.now()
         date_str = f"{now.month}月{now.day}日"
         return self.get_birth_by_date(date_str)
+    
+    def get_birth_by_name(self, name: str) -> Optional[str]:
+        """
+        通过名字获取干员的生日
+        Args:
+            name: 干员名字
+        """
+
+        for item in self.data:
+            if item["name"] == name:
+                return item["birthday"]
+        
+        return None
 
 if __name__ == "__main__":
     birthday = Birthday()
     print(birthday.get_birth_by_date("3月15日"))
     print(birthday.get_birth_today())
+    print(birthday.get_birth_by_name("迷迭香"))

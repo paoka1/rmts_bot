@@ -28,3 +28,15 @@ def get_birth_by_date(date: str) -> str:
         return f"{date}过生日的干员有: {', '.join(result)}"
     else:
         return f"{date}没有干员过生日"
+    
+# 通过名字获取干员的生日
+func_desc_birthday_by_name = FunctionDescription(name="get_birth_by_name", description="通过名字获取干员的生日")
+func_desc_birthday_by_name.add_param(name="name", description="干员名字", param_type="string", required=True)
+
+@function_container.function_calling(func_desc_birthday_by_name)
+def get_birth_by_name(name: str) -> str:
+    result = birthday_query.get_birth_by_name(name)
+    if result:
+        return f"{name}的生日是: {result}"
+    else:
+        return f"没有找到名为{name}的干员的生日信息"
