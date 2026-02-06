@@ -331,13 +331,14 @@ if __name__ == "__main__":
     async def main():
         api_key = input("请输入高德开放平台的 Web API Key: ").strip()
         weather = Weather(api_key)
+        location = input("请输入要查询天气的城市名称: ").strip()
         try:
             print("\n=== 查询实时天气 ===")
-            live_weather = await weather.get_live_weather("广州")
+            live_weather = await weather.get_live_weather(location)
             print(live_weather.to_readable_text())
             
             print("\n=== 查询天气预报 ===")
-            forecast_weather = await weather.get_forecast_weather("广州")
+            forecast_weather = await weather.get_forecast_weather(location)
             print(forecast_weather.to_readable_text())
         except WeatherError as e:
             print(f"查询天气失败: {str(e)}")
