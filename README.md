@@ -6,10 +6,17 @@
 
 ### AI 对话
 
-- 支持 Function Calling，可调用自定义函数
+- 支持 Function Calling，可调用自定义函数，已支持的函数功能调用：
+  - 发送戳一戳
+  - 发送表情
+  - 获取当前时间
+  - 通过日期获取过生日的干员，通过名字获取干员的生日
+  - 天气查询
+  - 全局、个人记忆增查
+
 - 群组独立的对话历史管理
 - 艾特机器人或戳一戳触发对话
-- 主动清除历史记录功能
+- 基于投票机制的重置功能（艾特发送`清除记忆`）
 
 ### B站直播推送
 - 订阅指定 UP 主的直播状态
@@ -17,9 +24,14 @@
 - 支持多群订阅和多 UP 主监控
 
 ### 轮盘游戏
-- 俄罗斯轮盘小游戏
+- 俄罗斯轮盘小游戏（艾特发送`香香轮盘`、`香香开枪`）
 - 惩罚机制为禁言
 - 可配置哑火概率
+
+### Minecraft服务器状态查询
+
+- 查询服务器状态（艾特发送`查询状态`）
+- 玩家上线、离线提醒
 
 等...
 
@@ -206,7 +218,7 @@ pyright
 
 ### 测试工具
 
-如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试，或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)
+如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试（推荐），或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)
 
 ### 提交 Pull Request
 
