@@ -33,7 +33,8 @@ class Model:
                  base_url: str = "https://api.deepseek.com",
                  model: str = "deepseek-chat",
                  prompt: str = prompt,
-                 max_history: int = 10
+                 max_history: int = 10,
+                 temperature: float = 1.5
     ) -> None:
         """
         参数：
@@ -44,6 +45,7 @@ class Model:
             model: 使用的模型名称
             prompt: 系统提示语
             max_history: 最大历史消息条数
+            temperature: 温度参数，控制输出随机性
         """
 
         self.client: AsyncOpenAI
@@ -54,6 +56,7 @@ class Model:
         self.model = model
         self.prompt = prompt
         self.max_history = max_history
+        self.temperature = temperature
         self.messages: List[Union[ChatCompletionSystemMessageParam,
                                   ChatCompletionUserMessageParam,
                                   ChatCompletionAssistantMessageParam,
@@ -83,42 +86,19 @@ class Model:
 
         # 添加用户消息到历史记录
         self.messages.append(ChatCompletionUserMessageParam(content=user_message, role="user"))
-        
         # 如果历史消息长度超过限制（不包括系统提示），删除最旧的消息
         if len(self.messages) > self.max_history + 1:
             # 保留系统提示（第一条）和最新的 max_history 条消息
             self.messages = [self.messages[0]] + self.messages[-(self.max_history):]
 
         # 发起请求
-        response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=self.messages,
-                    temperature=1.5,
-                    tools=self.fc.to_schemas(),
-                    tool_choice="auto",
-                    stream=False)
+        response = await self._create_chat_completion()
         # 获取响应内容
         response_message = response.choices[0].message
 
         # 检查是否有工具调用
         if response_message.tool_calls:
-            self.messages.append(ChatCompletionAssistantMessageParam(
-                role="assistant",
-                content=response_message.content,
-                tool_calls=[
-                    {
-                        "id": tool_call.id,
-                        "type": "function",
-                        "function": {
-                            "name": tool_call.function.name,
-                            "arguments": tool_call.function.arguments
-                        }
-                    }
-                    for tool_call in response_message.tool_calls
-                    if isinstance(tool_call, ChatCompletionMessageFunctionToolCall)
-                ]
-            ))
-
+            self._add_assistant_message_with_tool_calls(response_message)
             # 执行所有函数调用
             for tool_call in response_message.tool_calls:
                 if not isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
@@ -142,21 +122,13 @@ class Model:
                 ))
             
             # 再次调用聊天接口，获取最终响应
-            call_again_response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=self.messages,
-                    temperature=1.5,
-                    tools=self.fc.to_schemas(),
-                    tool_choice="auto",
-                    stream=False)
+            call_again_response = await self._create_chat_completion()
             response_message = call_again_response.choices[0].message
-
         else: # 没有工具调用，直接使用助手响应
             response_message = response.choices[0].message
 
         # 将助手响应添加到历史记录
         self.messages.append(ChatCompletionAssistantMessageParam(content=response_message.content, role="assistant"))
-
         # 返回响应内容
         return response_message.content
     
@@ -172,3 +144,33 @@ class Model:
         """清除当前会话的消息历史，保留系统提示"""
         self.messages.clear()
         self.messages.append(ChatCompletionSystemMessageParam(content=self.prompt, role="system"))
+    
+    async def _create_chat_completion(self):
+        """创建聊天完成请求"""
+        return await self.client.chat.completions.create(
+            model=self.model,
+            messages=self.messages,
+            temperature=self.temperature,
+            tools=self.fc.to_schemas(),
+            tool_choice="auto",
+            stream=False
+        )
+    
+    def _add_assistant_message_with_tool_calls(self, response_message) -> None:
+        """将带有工具调用的助手消息添加到历史记录"""
+        self.messages.append(ChatCompletionAssistantMessageParam(
+            role="assistant",
+            content=response_message.content,
+            tool_calls=[
+                {
+                    "id": tool_call.id,
+                    "type": "function",
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments
+                    }
+                }
+                for tool_call in response_message.tool_calls
+                if isinstance(tool_call, ChatCompletionMessageFunctionToolCall)
+            ]
+        ))
