@@ -3,10 +3,12 @@
 """
 
 from datetime import datetime
+from nonebot import get_driver
 
 from rmts.plugins.chat.function_calling import FunctionDescription, function_container
 
 from .birthday import Birthday
+from .weather import Weather
 
 # 获取当前时间
 func_desc_time = FunctionDescription(name="get_current_time", description="获取当前时间")
@@ -40,3 +42,17 @@ def get_birth_by_name(name: str) -> str:
         return f"{name}的生日是: {result}"
     else:
         return f"没有找到名为{name}的干员的生日信息"
+
+# 天气查询
+weather_query = Weather(get_driver().config.amap_weather_api_key)
+
+func_desc_weather = FunctionDescription(name="get_weather", description="获取天气信息")
+func_desc_weather.add_param(name="location", description="查询天气的地点，如：广州市、广宁县等", param_type="string", required=True)
+
+@function_container.function_calling(func_desc_weather)
+async def get_weather(location: str) -> str:
+    result = await weather_query.get_forecast_weather(location)
+    if result:
+        return result.to_readable_text()
+    else:
+        return f"没有找到{location}的天气信息"
