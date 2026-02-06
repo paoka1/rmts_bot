@@ -1,12 +1,13 @@
 """
-高德开放平台天气查询
+高德开放平台天气查询 SDK
+ref: https://github.com/Simoon-F/amap-weather
 """
 
 import httpx
 
 from dataclasses import dataclass, field
 from typing import List, Optional
-from typing import Dict, Any, Literal, Optional, Union
+from typing import Literal, Optional
 
 from nonebot.log import logger
 
@@ -122,53 +123,6 @@ class WeatherResponse:
             forecasts=forecasts
         )
     
-    def to_dict(self) -> dict:
-        """转换为字典"""
-        return {
-            "status": self.status,
-            "count": self.count,
-            "info": self.info,
-            "infocode": self.infocode,
-            "lives": [
-                {
-                    "province": live.province,
-                    "city": live.city,
-                    "adcode": live.adcode,
-                    "weather": live.weather,
-                    "temperature": live.temperature,
-                    "winddirection": live.winddirection,
-                    "windpower": live.windpower,
-                    "humidity": live.humidity,
-                    "reporttime": live.reporttime
-                }
-                for live in self.lives
-            ] if self.lives else [],
-            "forecasts": [
-                {
-                    "city": forecast.city,
-                    "adcode": forecast.adcode,
-                    "province": forecast.province,
-                    "reporttime": forecast.reporttime,
-                    "casts": [
-                        {
-                            "date": cast.date,
-                            "week": cast.week,
-                            "dayweather": cast.dayweather,
-                            "nightweather": cast.nightweather,
-                            "daytemp": cast.daytemp,
-                            "nighttemp": cast.nighttemp,
-                            "daywind": cast.daywind,
-                            "nightwind": cast.nightwind,
-                            "daypower": cast.daypower,
-                            "nightpower": cast.nightpower
-                        }
-                        for cast in forecast.casts
-                    ]
-                }
-                for forecast in self.forecasts
-            ] if self.forecasts else []
-        }
-    
 
 class WeatherError(Exception):
     """天气查询异常"""
@@ -198,20 +152,16 @@ class Weather:
     
     async def get_live_weather(
         self, 
-        city: str, 
-        output_format: Literal["json", "xml"] = "json",
-        parse: bool = True
-    ) -> Union[WeatherResponse, Dict[str, Any]]:
+        city: str
+    ) -> WeatherResponse:
         """
         获取实时天气
         
         Args:
             city: 城市名称或高德地址位置 adcode，例如："广州" 或 "440100"
-            output_format: 输出数据格式，支持 "json" 或 "xml"，默认为 "json"
-            parse: 是否解析为类型化对象，默认为 True。False 时返回原始字典
             
         Returns:
-            天气数据（WeatherResponse对象或字典）
+            天气数据（WeatherResponse对象）
             
         Raises:
             WeatherError: 查询失败时抛出异常
@@ -222,24 +172,20 @@ class Weather:
             >>> print(result.lives[0].city)
             中山市
         """
-        return await self._get_weather(city, extensions="base", output_format=output_format, parse=parse)
+        return await self._get_weather(city, extensions="base")
     
     async def get_forecast_weather(
         self, 
-        city: str, 
-        output_format: Literal["json", "xml"] = "json",
-        parse: bool = True
-    ) -> Union[WeatherResponse, Dict[str, Any]]:
+        city: str
+    ) -> WeatherResponse:
         """
         获取天气预报（未来3-4天）
         
         Args:
             city: 城市名称或高德地址位置 adcode，例如："广州" 或 "440100"
-            output_format: 输出数据格式，支持 "json" 或 "xml"，默认为 "json"
-            parse: 是否解析为类型化对象，默认为 True。False 时返回原始字典
             
         Returns:
-            天气预报数据（WeatherResponse对象或字典）
+            天气预报数据（WeatherResponse对象）
             
         Raises:
             WeatherError: 查询失败时抛出异常
@@ -250,26 +196,22 @@ class Weather:
             >>> print(result.forecasts[0].city)
             广州市
         """
-        return await self._get_weather(city, extensions="all", output_format=output_format, parse=parse)
+        return await self._get_weather(city, extensions="all")
     
     async def _get_weather(
         self, 
         city: str, 
-        extensions: Literal["base", "all"], 
-        output_format: Literal["json", "xml"],
-        parse: bool = True
-    ) -> Union[WeatherResponse, Dict[str, Any]]:
+        extensions: Literal["base", "all"]
+    ) -> WeatherResponse:
         """
         内部方法：查询天气信息
         
         Args:
             city: 城市名或 adcode
             extensions: 查询类型，"base" 为实时天气，"all" 为天气预报
-            output_format: 输出格式
-            parse: 是否解析为类型化对象
             
         Returns:
-            天气数据（WeatherResponse对象或字典）
+            天气数据（WeatherResponse对象）
             
         Raises:
             WeatherError: 查询失败时抛出异常
@@ -282,7 +224,7 @@ class Weather:
         params = {
             "key": self.api_key,
             "city": city,
-            "output": output_format,
+            "output": "json",
             "extensions": extensions
         }
         
@@ -293,11 +235,7 @@ class Weather:
                 response.raise_for_status()
                 
                 # 解析响应
-                if output_format == "json":
-                    data = response.json()
-                else:
-                    # XML 格式直接返回文本
-                    return {"xml": response.text}
+                data = response.json()
                 
                 # 检查 API 返回的状态
                 if data.get("status") != "1":
@@ -305,10 +243,8 @@ class Weather:
                     error_code = data.get("infocode", "")
                     raise WeatherError(f"API 返回错误: {error_info} (code: {error_code})")
                 
-                # 解析为类型化对象或返回原始字典
-                if parse:
-                    return WeatherResponse.from_dict(data)
-                return data
+                # 解析为类型化对象
+                return WeatherResponse.from_dict(data)
                 
         except httpx.HTTPError as e:
             raise WeatherError(f"网络请求失败: {str(e)}")
