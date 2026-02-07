@@ -3,8 +3,9 @@
 ref: https://github.com/Kengxxiao/ArknightsGameData
 """
 
-import json
 import os
+import json
+import aiofiles
 
 from pathlib import Path
 from openai import AsyncOpenAI
@@ -423,14 +424,38 @@ class OperatorInfoManager:
         参数：
             json_file_path: 干员信息 JSON 文件路径
         """
-        self.json_file_path = Path(os.getcwd()) / json_file_path
 
-    
+        self.json_file_path = Path(os.getcwd()) / json_file_path
+        self.operators_info: Dict[str, Dict] = {}  # 干员名称到信息的映射
+
+    async def load_operators_info(self):
+        """
+        加载干员信息
+        """
+        
+        async with aiofiles.open(self.json_file_path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            data = json.loads(content)
+        
+        # 从 JSON 中提取 operators 字段
+        self.operators_info = data.get("operators", {})
+
+    def get_operator_info_by_name(self, name: str) -> Optional[Dict]:
+        """
+        根据干员名称获取干员信息
+        参数：
+            name: 干员名称
+        返回：
+            包含干员信息的字典，如果未找到则返回 None
+        """
+
+        return self.operators_info.get(name, None)
 
 if __name__ == "__main__":
     import asyncio
     
-    async def test_main():
+    async def test_builder():
+        """测试 OperatorInfoBuilder：加载原始档案并使用 API 总结"""
         # 示例1：加载并打印干员原始档案
         builder = OperatorInfoBuilder()
         builder.load_operators()
@@ -468,7 +493,26 @@ if __name__ == "__main__":
         else:
             print(f"未找到干员: {operator_name}")
 
-    async def build_main():
+    async def test_manager():
+        """测试 OperatorInfoManager：加载并查询已生成的干员信息"""
+        manager = OperatorInfoManager()
+        
+        print("正在加载干员信息...")
+        await manager.load_operators_info()
+        
+        print(f"已加载干员数量: {len(manager.operators_info)}")
+        
+        operator_name = input("请输入要查询的干员名称（如：澄闪）：").strip()
+        
+        operator = manager.get_operator_info_by_name(operator_name)
+        if operator:
+            print("\n=== 干员信息摘要 ===")
+            print(operator.get("summary", "无摘要信息"))
+        else:
+            print(f"未找到干员: {operator_name}")
+
+    async def build_all():
+        """构建所有干员的信息摘要"""
         apikey = input("请输入 API Key 以构建所有干员信息（或直接按回车跳过）：").strip()
         if not apikey:
             print("未提供 API Key，跳过构建")
@@ -478,10 +522,20 @@ if __name__ == "__main__":
         builder.load_operators()
         await builder.build_all_operators_info(max_concurrent=25)
     
-    choose = input("请选择操作：1. 测试单个干员信息查询和总结 2. 构建所有干员信息 (输入1或2): ").strip()
+    print("=" * 60)
+    print("干员信息系统测试")
+    print("=" * 60)
+    print("1. 测试 OperatorInfoBuilder（加载原始档案并使用 API 总结）")
+    print("2. 测试 OperatorInfoManager（查询已生成的干员摘要信息）")
+    print("3. 构建所有干员信息摘要（需要 API Key）")
+    print("=" * 60)
+    
+    choose = input("请选择操作 (输入1/2/3): ").strip()
     if choose == '1':
-        asyncio.run(test_main())
+        asyncio.run(test_builder())
     elif choose == '2':
-        asyncio.run(build_main())
+        asyncio.run(test_manager())
+    elif choose == '3':
+        asyncio.run(build_all())
     else:
         print("无效选择，程序结束")
