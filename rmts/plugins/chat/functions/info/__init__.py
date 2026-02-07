@@ -3,12 +3,15 @@
 """
 
 from datetime import datetime
+
 from nonebot import get_driver
+from nonebot.log import logger
 
 from rmts.plugins.chat.function_calling import FunctionDescription, function_container
 
 from .birthday import Birthday
 from .weather import Weather
+from .operators import OperatorInfoManager
 
 # 获取当前时间
 func_desc_time = FunctionDescription(name="get_current_time", description="获取当前时间")
@@ -51,8 +54,33 @@ func_desc_weather.add_param(name="location", description="查询天气的地点�
 
 @function_container.function_calling(func_desc_weather)
 async def get_weather(location: str) -> str:
-    result = await weather_query.get_forecast_weather(location)
+    try:
+        result = await weather_query.get_forecast_weather(location)
+    except Exception as e:
+        logger.error(f"获取天气信息时发生错误: {str(e)}")
+        return f"获取天气信息时发生错误: {str(e)}"
+    
     if result:
         return result.to_readable_text()
     else:
         return f"没有找到{location}的天气信息"
+
+# 干员信息查询
+operator_manager = OperatorInfoManager()
+
+func_desc_operator_info = FunctionDescription(name="get_operator_info", description="获取干员信息")
+func_desc_operator_info.add_param(name="name", description="干员名字，如：澄闪", param_type="string", required=True)
+
+@function_container.function_calling(func_desc_operator_info)
+async def get_operator_info(name: str) -> str:
+    try:
+        operator = await operator_manager.get_operator_info_by_name(name)
+    except Exception as e:
+        logger.error(f"获取干员信息时发生错误: {str(e)}")
+        return f"获取干员信息时发生错误: {str(e)}"
+
+    if operator:
+        summary = operator.get("summary", "该干员无信息")
+        return f"{name}的干员信息：{summary}"
+    else:
+        return f"没有找到名为{name}的干员信息"
