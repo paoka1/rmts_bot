@@ -290,39 +290,6 @@ class OperatorInfoBuilder:
         """
         return self.operators_data.get(name)
 
-    @staticmethod
-    def calculate_cost(usage: Dict, cache_hit: bool = False) -> Dict[str, float]:
-        """
-        计算 API 调用费用
-        参数：
-            usage: 包含 token 使用情况的字典
-            cache_hit: 是否缓存命中（默认 False，即缓存未命中）
-        返回：
-            包含各项费用的字典（单位：元）
-        定价：
-            - 输入（缓存未命中）：¥2/百万tokens
-            - 输入（缓存命中）：¥0.2/百万tokens
-            - 输出：¥3/百万tokens
-        """
-        prompt_tokens = usage.get('prompt_tokens', 0)
-        completion_tokens = usage.get('completion_tokens', 0)
-        
-        # 计算费用（转换为元）
-        if cache_hit:
-            input_cost = prompt_tokens / 1_000_000 * 0.2
-        else:
-            input_cost = prompt_tokens / 1_000_000 * 2.0
-        
-        output_cost = completion_tokens / 1_000_000 * 3.0
-        total_cost = input_cost + output_cost
-        
-        return {
-            "input_cost": input_cost,
-            "output_cost": output_cost,
-            "total_cost": total_cost,
-            "cache_hit": cache_hit
-        }
-
 
 class OperatorInfoManager:
     """
@@ -372,19 +339,6 @@ if __name__ == "__main__":
             print(f"输入 tokens: {usage['prompt_tokens']}")
             print(f"输出 tokens: {usage['completion_tokens']}")
             print(f"总计 tokens: {usage['total_tokens']}")
-            
-            # 使用静态方法计算费用
-            cost_no_cache = OperatorInfoBuilder.calculate_cost(usage, cache_hit=False)
-            cost_cached = OperatorInfoBuilder.calculate_cost(usage, cache_hit=True)
-            
-            print(f"\n=== 费用估算 ===")
-            print(f"输出费用: ¥{cost_no_cache['output_cost']:.6f}")
-            print(f"\n缓存未命中（首次调用）：")
-            print(f"  输入费用: ¥{cost_no_cache['input_cost']:.6f}")
-            print(f"  总计费用: ¥{cost_no_cache['total_cost']:.6f}")
-            print(f"\n缓存命中（后续调用）：")
-            print(f"  输入费用: ¥{cost_cached['input_cost']:.6f}")
-            print(f"  总计费用: ¥{cost_cached['total_cost']:.6f}")
         else:
             print(f"未找到干员: {operator_name}")
     
