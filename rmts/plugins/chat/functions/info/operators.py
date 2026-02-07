@@ -184,7 +184,7 @@ class OperatorInfoBuilder:
    - 对话引用可以保留，但需要标明说话者
    - 重要的数据（如融合率、结晶密度）需要保留
    - 能力评价（物理强度、战场机动等）需要整合到描述中
-   - 干员档案若包含[异格]，则需要将两份档案进行整合
+   - 若出现多份档案，则说明干员有多种身份或经历，并整合所有档案的信息进行描述
 
 ## 输出格式：
 
@@ -214,12 +214,15 @@ class OperatorInfoBuilder:
         for idx_name, char_data in handbook_dict.items():
             if idx_name.startswith("npc_"):
                 continue  # 跳过 NPC 数据
+
             operator_info = OperatorInfo.from_dict(char_data)
-            if operator_info.info_name in self.operators_data:
+            name = operator_info.info_name
+            if name in self.operators_data: # 异格干员
+                name = name + "[异格]"
                 operator_info.is_alternative = True
-                self.operators_data[operator_info.info_name + "[异格]"] = operator_info
-            else:
-                self.operators_data[operator_info.info_name] = operator_info
+                if name in self.operators_data: # 二次异格
+                    name = name.replace("[异格]", "[二次异格]")
+            self.operators_data[name] = operator_info
 
     def _init_client(self) -> None:
         """初始化 OpenAI 客户端"""
@@ -231,7 +234,7 @@ class OperatorInfoBuilder:
                 base_url=self.base_url
             )
 
-    async def summarize_operator(self, operator: Union[str, OperatorInfo]) -> Dict:
+    async def summarize_operator(self, operator: Union[str, List[OperatorInfo]]) -> Dict:
         """
         对单个干员的信息进行总结，并返回使用情况
         参数：
@@ -239,6 +242,8 @@ class OperatorInfoBuilder:
         返回：
             包含 summary（总结文本）和 usage（使用情况）的字典
             usage 包含：prompt_tokens, completion_tokens, total_tokens
+        注意：
+            如果干员已经异格，则会自动整合多份档案进行总结
         """
         # 初始化客户端
         self._init_client()
@@ -252,7 +257,9 @@ class OperatorInfoBuilder:
             operator_info = operator
         
         # 构建用户消息（干员的完整档案信息）
-        user_message = operator_info.to_string()
+        user_message = ""
+        for op in operator_info:
+            user_message += op.to_string() + "\n\n"
 
         if self.client is None:
             raise ValueError("OpenAI client is not initialized")
@@ -281,15 +288,21 @@ class OperatorInfoBuilder:
             }
         }
 
-    def get_operator_info_by_name(self, name: str) -> Optional[OperatorInfo]:
+    def get_operator_info_by_name(self, name: str) -> Optional[List[OperatorInfo]]:
         """
         根据干员名称获取干员信息
         参数：
             name: 干员名称
         返回：
-            OperatorInfo 对象，如果未找到则返回 None
+            包含 OperatorInfo 对象的列表，如果未找到则返回 None
         """
-        return self.operators_data.get(name)
+        operator_info = self.operators_data.get(name)
+        operator_info_alt = self.operators_data.get(name + "[异格]")
+        if operator_info:
+            if operator_info_alt:
+                return [operator_info, operator_info_alt]
+            return [operator_info]
+        return None
 
 
 class OperatorInfoManager:
@@ -320,7 +333,9 @@ if __name__ == "__main__":
         
         if operator_info:
             print("\n=== 原始档案 ===")
-            print(operator_info.to_string())
+            for op in operator_info:
+                print(op.to_string())
+                print("\n----------------\n")
             
             # 示例2：使用 API 总结干员信息并获取费用信息
             apikey = input("\n请输入 API Key 以测试总结功能（或直接按回车跳过）：").strip()
