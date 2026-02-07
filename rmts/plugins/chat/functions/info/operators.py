@@ -440,7 +440,7 @@ class OperatorInfoManager:
         # 从 JSON 中提取 operators 字段
         self.operators_info = data.get("operators", {})
 
-    def get_operator_info_by_name(self, name: str) -> Optional[Dict]:
+    async def get_operator_info_by_name(self, name: str) -> Optional[Dict]:
         """
         根据干员名称获取干员信息
         参数：
@@ -448,6 +448,9 @@ class OperatorInfoManager:
         返回：
             包含干员信息的字典，如果未找到则返回 None
         """
+
+        if not self.operators_info:
+            await self.load_operators_info()
 
         return self.operators_info.get(name, None)
 
@@ -504,7 +507,7 @@ if __name__ == "__main__":
         
         operator_name = input("请输入要查询的干员名称（如：澄闪）：").strip()
         
-        operator = manager.get_operator_info_by_name(operator_name)
+        operator = await manager.get_operator_info_by_name(operator_name)
         if operator:
             print("\n=== 干员信息摘要 ===")
             print(operator.get("summary", "无摘要信息"))
