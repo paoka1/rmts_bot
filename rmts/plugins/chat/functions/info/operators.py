@@ -29,6 +29,7 @@ class OperatorInfo:
     char_id: str  # 角色ID
     info_name: str  # 信息名称
     is_limited: bool  # 是否限定
+    is_alternative: bool = False  # 是否异格
     stories: List[StoryInfo] = field(default_factory=list)  # 档案故事列表
     
     @classmethod
@@ -42,7 +43,7 @@ class OperatorInfo:
         story_text_audio = data.get("storyTextAudio", [])
         
         # 从基础档案中提取真实的干员代号
-        real_name = None
+        name = None
         for audio_item in story_text_audio:
             story_title = audio_item.get("storyTitle", "")
             story_list = audio_item.get("stories", [])
@@ -52,25 +53,22 @@ class OperatorInfo:
                 story_text = story.get("storyText", "")
                 if story_text and story_text.strip():
                     # 按回车分割文本
-                    content_lines = [line.strip() for line in story_text.split("\n") if line.strip()]
+                    content_lines: List[str] = [line.strip() for line in story_text.split("\n") if line.strip()]
                     
                     # 如果是基础档案且还没有找到真实名字，尝试提取【代号】
-                    if story_title == "基础档案" and real_name is None:
-                        for line in content_lines:
-                            if line.startswith("【代号】"):
-                                real_name = line.replace("【代号】", "").strip()
-                                break
+                    if story_title == "基础档案" and name is None:
+                        name = content_lines[0].split("】")[-1].strip()
+                        name = name.replace("“", "").replace("”", "")  # 去除引号
                     
                     story_info = StoryInfo(
                         title=story_title,
                         content=content_lines
                     )
                     stories.append(story_info)
-                    break  # 每个 storyTitle 只取第一个有效的 story
         
         # 如果找到了真实名字，使用它；否则使用原来的 infoName
-        if real_name:
-            info_name = real_name
+        if name:
+            info_name = name
         
         return cls(
             char_id=char_id,
@@ -186,6 +184,7 @@ class OperatorInfoBuilder:
    - 对话引用可以保留，但需要标明说话者
    - 重要的数据（如融合率、结晶密度）需要保留
    - 能力评价（物理强度、战场机动等）需要整合到描述中
+   - 干员档案若包含[异格]，则需要将两份档案进行整合
 
 ## 输出格式：
 
@@ -212,13 +211,15 @@ class OperatorInfoBuilder:
         
         handbook_dict = data.get("handbookDict", {})
         
-        for char_id, char_data in handbook_dict.items():
+        for idx_name, char_data in handbook_dict.items():
+            if idx_name.startswith("npc_"):
+                continue  # 跳过 NPC 数据
             operator_info = OperatorInfo.from_dict(char_data)
-            # 使用干员名称作为 key，同时也用 char_id 作为备用 key
-            self.operators_data[operator_info.info_name] = operator_info
-            # 如果 char_id 不同于 info_name，也存储一份
-            if char_id != operator_info.info_name:
-                self.operators_data[char_id] = operator_info
+            if operator_info.info_name in self.operators_data:
+                operator_info.is_alternative = True
+                self.operators_data[operator_info.info_name + "[异格]"] = operator_info
+            else:
+                self.operators_data[operator_info.info_name] = operator_info
 
     def _init_client(self) -> None:
         """初始化 OpenAI 客户端"""
@@ -311,9 +312,10 @@ if __name__ == "__main__":
         # 示例1：加载并打印干员原始档案
         builder = OperatorInfoBuilder()
         builder.load_operators()
+    
         print(f"已加载干员数量: {len(builder.operators_data)}")
         
-        operator_name = "澄闪"  # 替换为你想查询的干员名称
+        operator_name = input("请输入要查询的干员名称（如：澄闪）：").strip()
         operator_info = builder.get_operator_info_by_name(operator_name)
         
         if operator_info:
