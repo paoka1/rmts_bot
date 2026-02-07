@@ -1,0 +1,391 @@
+"""
+干员信息
+ref: https://github.com/Kengxxiao/ArknightsGameData
+"""
+
+import json
+import os
+
+from pathlib import Path
+from openai import AsyncOpenAI
+from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Union
+
+
+@dataclass
+class StoryInfo:
+    """故事信息"""
+    title: str  # 故事标题，如"基础档案"、"临床诊断分析"
+    content: List[str]  # 故事内容，按行分割
+    
+    def get_full_text(self) -> str:
+        """获取完整文本"""
+        return "\n".join(self.content)
+
+
+@dataclass
+class OperatorInfo:
+    """干员信息"""
+    char_id: str  # 角色ID
+    info_name: str  # 信息名称
+    is_limited: bool  # 是否限定
+    stories: List[StoryInfo] = field(default_factory=list)  # 档案故事列表
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "OperatorInfo":
+        """从字典创建干员信息对象"""
+        char_id = data.get("charID", "")
+        info_name = data.get("infoName", "Unknown")
+        is_limited = data.get("isLimited", False)
+        
+        stories = []
+        story_text_audio = data.get("storyTextAudio", [])
+        
+        # 从基础档案中提取真实的干员代号
+        real_name = None
+        for audio_item in story_text_audio:
+            story_title = audio_item.get("storyTitle", "")
+            story_list = audio_item.get("stories", [])
+            
+            # 提取有意义的 storyText
+            for story in story_list:
+                story_text = story.get("storyText", "")
+                if story_text and story_text.strip():
+                    # 按回车分割文本
+                    content_lines = [line.strip() for line in story_text.split("\n") if line.strip()]
+                    
+                    # 如果是基础档案且还没有找到真实名字，尝试提取【代号】
+                    if story_title == "基础档案" and real_name is None:
+                        for line in content_lines:
+                            if line.startswith("【代号】"):
+                                real_name = line.replace("【代号】", "").strip()
+                                break
+                    
+                    story_info = StoryInfo(
+                        title=story_title,
+                        content=content_lines
+                    )
+                    stories.append(story_info)
+                    break  # 每个 storyTitle 只取第一个有效的 story
+        
+        # 如果找到了真实名字，使用它；否则使用原来的 infoName
+        if real_name:
+            info_name = real_name
+        
+        return cls(
+            char_id=char_id,
+            info_name=info_name,
+            is_limited=is_limited,
+            stories=stories
+        )
+    
+    def get_story_by_title(self, title: str) -> Optional[StoryInfo]:
+        """根据标题获取故事"""
+        for story in self.stories:
+            if story.title == title:
+                return story
+        return None
+    
+    def get_all_story_titles(self) -> List[str]:
+        """获取所有故事标题"""
+        return [story.title for story in self.stories]
+    
+    def to_string(self) -> str:
+        """转换为可读字符串"""
+        lines = [
+            f"干员ID: {self.char_id}",
+            f"名称: {self.info_name}",
+            f"是否限定: {'是' if self.is_limited else '否'}",
+            "\n档案信息:"
+        ]
+        
+        for story in self.stories:
+            lines.append(f"\n【{story.title}】")
+            lines.extend(story.content)
+        
+        return "\n".join(lines)
+
+
+class OperatorInfoBuilder:
+    """
+    干员信息构建类
+    """
+
+    def __init__(self,
+                 *,
+                 api_key: Optional[str] = None,
+                 resource_path: str = "rmts/resources/json/operators/handbook_info_table.json",
+                 output_path: str = "rmts/resources/json/operators/operators_info.json",
+                 base_url: str = "https://api.deepseek.com",
+                 model: str = "deepseek-chat",
+                 prompt: Optional[str] = None,
+                 temperature: float = 0.5,
+    ):
+        """
+        构建干员信息字符串
+        参数：
+            resource_path: 资源文件路径
+            api_key: API密钥
+            output_path: 输出文件路径
+            base_url: API基础URL
+            model: 使用的模型
+            prompt: 可选的提示语，为空时使用默认提示语
+            temperature: 生成文本的随机程度，值越高生成的文本越随机，值越低生成的文本越确定
+        """
+
+        if prompt is None:
+            self.prompt = self.get_system_prompt()
+        else:
+            self.prompt = prompt
+        
+        self.api_key = api_key
+        self.resource_path = Path(os.getcwd()) / resource_path
+        self.output_path = Path(os.getcwd()) / output_path
+        self.base_url = base_url
+        self.model = model
+        self.temperature = temperature
+
+        self.operators_data: Dict[str, OperatorInfo] = {} # 干员名称到干员信息的映射
+        self.client: Optional[AsyncOpenAI] = None  # OpenAI 客户端
+
+    def get_system_prompt(self) -> str:
+        """
+        获取系统提示语
+        """
+
+        prompt = """你是一位专业的档案整理专家，擅长将详细的第一人称档案资料转换为精炼、客观的第三人称描述。
+
+你的任务是将明日方舟干员的档案信息进行整理和改写，输出一份供其他AI使用的干员信息摘要。
+
+## 改写要求：
+
+1. **人称转换**：
+   - 将所有第一人称（"我"、"你"）改为第三人称叙述
+   - 用"博士"代替原文中的"你"
+   - 保持客观、中立的叙述口吻
+
+2. **信息整合**：
+   - 保留所有关键信息（基础档案、身份背景、能力特点、经历故事、人际关系等）
+   - 将分散在各个档案中的信息整合为流畅的段落
+   - 删除重复或冗余的描述，但不能过度简化
+
+3. **内容结构**：
+   - 第一段：基础信息（代号、性别、种族、出身地、生日、身高等）
+   - 第二段：感染情况与身体状况（矿石病感染、体检结果、特殊体质等）
+   - 第三段：背景履历（出身、经历、如何加入罗德岛）
+   - 第四段及以后：能力特点、性格特征、人际关系、重要事件等
+   - 最后：总结性描述或他人评价
+
+4. **文风要求**：
+   - 保持叙事的连贯性和可读性
+   - 适当保留一些细节和情感色彩，使人物形象立体
+   - 长度控制在原文的40%-60%左右
+   - 避免过于生硬的条目式罗列
+
+5. **特殊处理**：
+   - 对话引用可以保留，但需要标明说话者
+   - 重要的数据（如融合率、结晶密度）需要保留
+   - 能力评价（物理强度、战场机动等）需要整合到描述中
+
+## 输出格式：
+
+以干员代号开头，然后是多个自然段落的叙述性文本，不需要使用【】标记或明显的分段标题。
+
+## 示例风格：
+
+澄闪，原名苏茜·格里特，女性菲林，1月7日出生于维多利亚北部边境城市博森德尔，身高159cm。作为格里特夫妇的第六个孩子，她在贫困的家庭中长大，兄妹众多。
+
+她是一名矿石病感染者，体细胞与源石融合率为4%，血液源石结晶密度为0.27u/L。她的源石技艺适应性极高，但由于家庭经济原因，未能在当地术师学院完成学业。感染矿石病后，她的源石技艺开始失控，表现为不间断且无意识的静电释放。格拉尼曾抱怨说："最近澄闪小姐的静电越来越强了，为她做诊疗的干员一定要做静电保护！"
+
+（继续详细但精炼的叙述...）
+
+现在，请对下面的干员档案进行整理改写："""
+
+        return prompt
+    
+    def load_operators(self):
+        """
+        从 JSON 文件加载所有干员信息
+        """
+        with open(self.resource_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        handbook_dict = data.get("handbookDict", {})
+        
+        for char_id, char_data in handbook_dict.items():
+            operator_info = OperatorInfo.from_dict(char_data)
+            # 使用干员名称作为 key，同时也用 char_id 作为备用 key
+            self.operators_data[operator_info.info_name] = operator_info
+            # 如果 char_id 不同于 info_name，也存储一份
+            if char_id != operator_info.info_name:
+                self.operators_data[char_id] = operator_info
+
+    def _init_client(self) -> None:
+        """初始化 OpenAI 客户端"""
+        if self.client is None:
+            if self.api_key is None:
+                raise ValueError("API key is required for summarization")
+            self.client = AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
+
+    async def summarize_operator(self, operator: Union[str, OperatorInfo]) -> Dict:
+        """
+        对单个干员的信息进行总结，并返回使用情况
+        参数：
+            operator: 干员名称（str）或干员信息对象（OperatorInfo）
+        返回：
+            包含 summary（总结文本）和 usage（使用情况）的字典
+            usage 包含：prompt_tokens, completion_tokens, total_tokens
+        """
+        # 初始化客户端
+        self._init_client()
+        
+        # 获取干员信息对象
+        if isinstance(operator, str):
+            operator_info = self.get_operator_info_by_name(operator)
+            if operator_info is None:
+                raise ValueError(f"未找到干员: {operator}")
+        else:
+            operator_info = operator
+        
+        # 构建用户消息（干员的完整档案信息）
+        user_message = operator_info.to_string()
+
+        if self.client is None:
+            raise ValueError("OpenAI client is not initialized")
+        
+        # 调用 API 进行总结
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self.prompt},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=self.temperature,
+            stream=False
+        )
+        
+        # 提取总结结果和使用情况
+        summary = response.choices[0].message.content
+        usage = response.usage
+        
+        return {
+            "summary": summary if summary else "",
+            "usage": {
+                "prompt_tokens": usage.prompt_tokens if usage else 0,
+                "completion_tokens": usage.completion_tokens if usage else 0,
+                "total_tokens": usage.total_tokens if usage else 0,
+            }
+        }
+
+    def get_operator_info_by_name(self, name: str) -> Optional[OperatorInfo]:
+        """
+        根据干员名称获取干员信息
+        参数：
+            name: 干员名称
+        返回：
+            OperatorInfo 对象，如果未找到则返回 None
+        """
+        return self.operators_data.get(name)
+
+    @staticmethod
+    def calculate_cost(usage: Dict, cache_hit: bool = False) -> Dict[str, float]:
+        """
+        计算 API 调用费用
+        参数：
+            usage: 包含 token 使用情况的字典
+            cache_hit: 是否缓存命中（默认 False，即缓存未命中）
+        返回：
+            包含各项费用的字典（单位：元）
+        定价：
+            - 输入（缓存未命中）：¥2/百万tokens
+            - 输入（缓存命中）：¥0.2/百万tokens
+            - 输出：¥3/百万tokens
+        """
+        prompt_tokens = usage.get('prompt_tokens', 0)
+        completion_tokens = usage.get('completion_tokens', 0)
+        
+        # 计算费用（转换为元）
+        if cache_hit:
+            input_cost = prompt_tokens / 1_000_000 * 0.2
+        else:
+            input_cost = prompt_tokens / 1_000_000 * 2.0
+        
+        output_cost = completion_tokens / 1_000_000 * 3.0
+        total_cost = input_cost + output_cost
+        
+        return {
+            "input_cost": input_cost,
+            "output_cost": output_cost,
+            "total_cost": total_cost,
+            "cache_hit": cache_hit
+        }
+
+
+class OperatorInfoManager:
+    """
+    干员信息加载查询
+    """
+
+    def __init__(self, json_file_path: str = "rmts/resources/json/operators/operators_info.json") -> None:
+        """
+        初始化干员信息类
+        参数：
+            json_file_path: 干员信息 JSON 文件路径
+        """
+        self.json_file_path = Path(os.getcwd()) / json_file_path
+
+if __name__ == "__main__":
+    import asyncio
+    
+    async def main():
+        # 示例1：加载并打印干员原始档案
+        builder = OperatorInfoBuilder()
+        builder.load_operators()
+        print(f"已加载干员数量: {len(builder.operators_data)}")
+        
+        operator_name = "澄闪"  # 替换为你想查询的干员名称
+        operator_info = builder.get_operator_info_by_name(operator_name)
+        
+        if operator_info:
+            print("\n=== 原始档案 ===")
+            print(operator_info.to_string())
+            
+            # 示例2：使用 API 总结干员信息并获取费用信息
+            apikey = input("\n请输入 API Key 以测试总结功能（或直接按回车跳过）：").strip()
+            if not apikey:
+                print("未提供 API Key，跳过总结测试")
+                return
+            
+            builder_with_api = OperatorInfoBuilder(api_key=apikey, temperature=0.5)
+            builder_with_api.load_operators()
+            
+            result = await builder_with_api.summarize_operator(operator_name)
+            
+            print("\n=== AI 总结 ===")
+            print(result["summary"])
+            
+            print("\n=== 使用情况 ===")
+            usage = result["usage"]
+            print(f"输入 tokens: {usage['prompt_tokens']}")
+            print(f"输出 tokens: {usage['completion_tokens']}")
+            print(f"总计 tokens: {usage['total_tokens']}")
+            
+            # 使用静态方法计算费用
+            cost_no_cache = OperatorInfoBuilder.calculate_cost(usage, cache_hit=False)
+            cost_cached = OperatorInfoBuilder.calculate_cost(usage, cache_hit=True)
+            
+            print(f"\n=== 费用估算 ===")
+            print(f"输出费用: ¥{cost_no_cache['output_cost']:.6f}")
+            print(f"\n缓存未命中（首次调用）：")
+            print(f"  输入费用: ¥{cost_no_cache['input_cost']:.6f}")
+            print(f"  总计费用: ¥{cost_no_cache['total_cost']:.6f}")
+            print(f"\n缓存命中（后续调用）：")
+            print(f"  输入费用: ¥{cost_cached['input_cost']:.6f}")
+            print(f"  总计费用: ¥{cost_cached['total_cost']:.6f}")
+        else:
+            print(f"未找到干员: {operator_name}")
+    
+    asyncio.run(main())
