@@ -13,7 +13,8 @@
   - 通过日期获取过生日的干员，通过名字获取干员的生日
   - 天气查询
   - 全局、个人记忆增查
-
+  - 干员档案查询
+  
 - 群组独立的对话历史管理
 - 艾特机器人或戳一戳触发对话
 - 基于投票机制的重置功能（艾特发送`清除记忆`）
@@ -112,9 +113,11 @@ rmts/
 │   ├── bilibili/    # B站直播推送
 │   ├── chat/        # AI 对话
 │   ├── greet/       # 问候功能
+│   ├── minecraft/   # Minecraft服务器状态
 │   ├── roulette/    # 轮盘游戏
 │   └── weishu/      # 卫戍协议
 ├── resources/       # 资源文件
+│   ├── json/        # 数据
 │   └── images/      # 图片资源
 └── utils/           # 通用工具
     ├── action.py    # 消息发送等操作
@@ -245,13 +248,21 @@ git push origin feature/your-feature
 
 5.在 GitHub 上创建 Pull Request，描述你的更改内容
 
-## 参考链接
+## 致谢
+
+- [Nonebot2](https://github.com/nonebot/nonebot2)：跨平台 Python 异步聊天机器人框架
+- [NapCat](https://github.com/NapNeko/NapCatQQ)：现代化的基于 NTQQ 的 Bot 协议端实现
+- [matcha](https://github.com/A-kirami/matcha)：模拟聊天交互的辅助开发工具
+- [ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)：《明日方舟》游戏数据
+- [PRTS wiki](https://prts.wiki/w/%E9%A6%96%E9%A1%B5)：由游戏明日方舟爱好者搭建并协作编写的非营利wiki类资料站点
+- [Console 适配器](https://github.com/nonebot/adapter-console)：NoneBot2 终端适配器
+- deepseek、高德等服务提供平台
+
+## 参考文档
 
 - [NoneBot2 文档](https://nonebot.dev/)
 - [OneBot V11 标准](https://github.com/botuniverse/onebot-11)
-- [NapCat 官网](https://napneko.github.io/)
-- [matcha 仓库](https://github.com/A-kirami/matcha)
-- [Console 适配器仓库](https://github.com/nonebot/adapter-console)
+- [NapCat 文档](https://napneko.github.io/)
 
 ## 许可证
 
