@@ -177,7 +177,7 @@ class OperatorInfoBuilder:
 4. **文风要求**：
    - 保持叙事的连贯性和可读性
    - 适当保留一些细节和情感色彩，使人物形象立体
-   - 长度控制在原文的40%-60%左右
+   - 长度控制在原文的50%到60%左右
    - 避免过于生硬的条目式罗列
 
 5. **特殊处理**：
@@ -296,13 +296,120 @@ class OperatorInfoBuilder:
         返回：
             包含 OperatorInfo 对象的列表，如果未找到则返回 None
         """
-        operator_info = self.operators_data.get(name)
-        operator_info_alt = self.operators_data.get(name + "[异格]")
-        if operator_info:
-            if operator_info_alt:
-                return [operator_info, operator_info_alt]
-            return [operator_info]
-        return None
+        # 尝试查找干员及其所有异格版本
+        result = [self.operators_data[name + suffix] 
+                  for suffix in ["", "[异格]", "[二次异格]"] 
+                  if name + suffix in self.operators_data]
+        return result if result else None
+    
+    async def build_all_operators_info(self, max_concurrent: int = 5):
+        """
+        构建所有干员的信息摘要，并保存到输出文件
+        参数：
+            max_concurrent: 同时发送请求的上限，默认为5
+        """
+        # 检查输出文件是否存在
+        if self.output_path.exists():
+            response = input(f"文件 {self.output_path} 已存在，是否覆盖？(y/n): ").strip().lower()
+            if response != 'y':
+                print("操作已取消")
+                return
+        
+        # 确保输出目录存在
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 初始化客户端
+        self._init_client()
+        
+        # 准备所有需要处理的干员（过滤掉异格，因为会在原干员处理时一起处理）
+        operators_list = [name for name, op_info in self.operators_data.items() if not op_info.is_alternative]
+        total_count = len(operators_list)
+        
+        print(f"开始处理 {total_count} 个干员...")
+        
+        # 结果字典
+        results = {}
+        
+        # 使用信号量限制并发数
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        # 统计信息
+        total_usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
+        
+        # 处理单个干员的包装函数
+        async def process_operator(name: str):
+            async with semaphore:
+                try:
+                    print(f"正在处理: {name}")
+                    result = await self.summarize_operator(name)
+                    return name, result, None
+                except Exception as e:
+                    print(f"处理 {name} 时出错: {e}")
+                    return name, None, str(e)
+        
+        # 分批处理
+        batch_size = max_concurrent
+        for i in range(0, total_count, batch_size):
+            batch = operators_list[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (total_count + batch_size - 1) // batch_size
+            
+            print(f"\n{'='*50}")
+            print(f"处理批次 {batch_num}/{total_batches} (干员 {i+1}-{min(i+batch_size, total_count)}/{total_count})")
+            print(f"{'='*50}")
+            
+            # 并发处理当前批次
+            tasks = [process_operator(name) for name in batch]
+            batch_results = await asyncio.gather(*tasks)
+            
+            # 更新结果
+            for name, result, error in batch_results:
+                if result is not None and error is None:
+                    results[name] = {
+                        "summary": result["summary"]
+                    }
+                    # 累计使用量
+                    total_usage["prompt_tokens"] += result["usage"]["prompt_tokens"]
+                    total_usage["completion_tokens"] += result["usage"]["completion_tokens"]
+                    total_usage["total_tokens"] += result["usage"]["total_tokens"]
+                else:
+                    results[name] = {
+                        "summary": "",
+                        "error": error if error else "未知错误"
+                    }
+            
+            # 保存当前结果
+            save_data = {
+                "operators": results,
+                "statistics": {
+                    "total_operators": len(results),
+                    "completed": len([r for r in results.values() if "error" not in r]),
+                    "failed": len([r for r in results.values() if "error" in r]),
+                    "usage": total_usage
+                }
+            }
+            
+            with open(self.output_path, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
+            
+            print(f"\n✓ 批次 {batch_num} 完成，已保存到 {self.output_path}")
+            print(f"  进度: {len(results)}/{total_count} 个干员")
+            print(f"  当前批次使用: {sum(r.get('usage', {}).get('total_tokens', 0) for _, r, _ in batch_results if r)} tokens")
+        
+        print(f"\n{'='*50}")
+        print(f"所有干员处理完成！")
+        print(f"{'='*50}")
+        print(f"总计: {len(results)} 个干员")
+        print(f"成功: {len([r for r in results.values() if 'error' not in r])} 个")
+        print(f"失败: {len([r for r in results.values() if 'error' in r])} 个")
+        print(f"\n总使用情况:")
+        print(f"  输入 tokens: {total_usage['prompt_tokens']}")
+        print(f"  输出 tokens: {total_usage['completion_tokens']}")
+        print(f"  总计 tokens: {total_usage['total_tokens']}")
 
 
 class OperatorInfoManager:
@@ -318,10 +425,12 @@ class OperatorInfoManager:
         """
         self.json_file_path = Path(os.getcwd()) / json_file_path
 
+    
+
 if __name__ == "__main__":
     import asyncio
     
-    async def main():
+    async def test_main():
         # 示例1：加载并打印干员原始档案
         builder = OperatorInfoBuilder()
         builder.load_operators()
@@ -358,5 +467,21 @@ if __name__ == "__main__":
             print(f"总计 tokens: {usage['total_tokens']}")
         else:
             print(f"未找到干员: {operator_name}")
+
+    async def build_main():
+        apikey = input("请输入 API Key 以构建所有干员信息（或直接按回车跳过）：").strip()
+        if not apikey:
+            print("未提供 API Key，跳过构建")
+            return
+        
+        builder = OperatorInfoBuilder(api_key=apikey)
+        builder.load_operators()
+        await builder.build_all_operators_info(max_concurrent=25)
     
-    asyncio.run(main())
+    choose = input("请选择操作：1. 测试单个干员信息查询和总结 2. 构建所有干员信息 (输入1或2): ").strip()
+    if choose == '1':
+        asyncio.run(test_main())
+    elif choose == '2':
+        asyncio.run(build_main())
+    else:
+        print("无效选择，程序结束")
