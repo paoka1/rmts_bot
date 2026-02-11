@@ -28,6 +28,8 @@ class ModelPool:
 
     async def chat(self, group_id: int, user_id: int, user_message: str) -> Optional[str]:
         """
+        llm 聊天接口，确保同一群组的消息顺序处理
+        
         参数：
             group_id: 群号
             user_id: 用户 ID

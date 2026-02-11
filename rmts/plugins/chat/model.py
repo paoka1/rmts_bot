@@ -95,6 +95,10 @@ class Model:
         if len(self.messages) > self.max_history + 1:
             # 保留系统提示（第一条）和最新的 max_history 条消息
             self.messages = [self.messages[0]] + self.messages[-(self.max_history):]
+            # 确保 tool call 和 tool response 同时被删除
+            # 删除所有开头的孤立 tool 消息（可能有多个连续的 tool response）
+            while len(self.messages) > 1 and self.messages[1].get("role") == "tool":
+                self.messages.pop(1)
 
         # 函数调用计数器
         function_call_count = 0
