@@ -255,6 +255,7 @@ git push origin feature/your-feature
 - [matcha](https://github.com/A-kirami/matcha)：模拟聊天交互的辅助开发工具
 - [ArknightsGameData](https://github.com/Kengxxiao/ArknightsGameData)：《明日方舟》游戏数据
 - [PRTS wiki](https://prts.wiki/w/%E9%A6%96%E9%A1%B5)：由游戏明日方舟爱好者搭建并协作编写的非营利wiki类资料站点
+- [amap-weather](https://github.com/Simoon-F/amap-weather)：基于 高德开放平台 的天气查询扩展包
 - [Console 适配器](https://github.com/nonebot/adapter-console)：NoneBot2 终端适配器
 - deepseek、高德等服务提供平台
 
