@@ -8,8 +8,8 @@ from nonebot.adapters.onebot.v11 import MessageSegment
 from nonebot.adapters.onebot.v11 import Bot, PokeNotifyEvent
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
-from rmts.utils.rule import is_poke_me
-from rmts.utils.info import get_nickname
+from rmts.utils.nonebot import is_poke_me
+from rmts.utils.nonebot import get_nickname
 
 from .pool import ModelPool
 from .clear_history import ClearHistory

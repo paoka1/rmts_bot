@@ -3,7 +3,6 @@ from nonebot import get_bot
 
 from datetime import datetime
 
-from rmts.utils.action import send_group_msg
 from rmts.utils.config import split_groups
 
 config = get_driver().config
@@ -38,17 +37,3 @@ async def say_hello():
     bot = get_bot()
     for group_id in available_groups:
         await bot.send_group_msg(group_id=group_id, message=greeting)
-
-# 断开连接时发送告别语
-# @driver.on_shutdown
-# async def say_goodbye():
-#     if available_groups == ['']:
-#         return
-#     for group_id in available_groups:
-#         await send_group_msg(
-#             group_id=group_id,
-#             message="香香想休息一会，等下再来和大家聊天~",
-#             api_url=napcat_url,
-#             api_port=napcat_port,
-#             access_token=napcat_token
-#             )

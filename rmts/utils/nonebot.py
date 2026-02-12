@@ -1,5 +1,6 @@
-from nonebot.adapters.onebot.v11 import Bot
 from typing import Optional
+from nonebot.adapters.onebot.v11 import Bot
+from nonebot.adapters.onebot.v11 import Event, PokeNotifyEvent
 
 async def get_nickname(bot: Bot, group_id: Optional[int], user_id: int) -> str:
     """
@@ -19,3 +20,7 @@ async def get_nickname(bot: Bot, group_id: Optional[int], user_id: int) -> str:
     else:
         info = await bot.get_stranger_info(user_id=user_id)
         return str(info.get("nickname"))
+
+# 自定义 Rule：判断是否是戳到bot的poke事件
+async def is_poke_me(event: Event) -> bool:
+    return isinstance(event, PokeNotifyEvent) and event.is_tome()
