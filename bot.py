@@ -1,7 +1,7 @@
 import nonebot
 
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
-from nonebot.adapters.console import Adapter as CONSOLEAdapter
+# from nonebot.adapters.console import Adapter as CONSOLEAdapter
 
 nonebot.init()
 
