@@ -10,9 +10,13 @@ scheduler = require('nonebot_plugin_apscheduler').scheduler
 config = get_driver().config
 available_groups = split_groups_int(config.autosign_available_groups)
 sign_time = config.autosign_time.split(':')
-sign_time = (int(sign_time[0]), int(sign_time[1]))
+# 支持 HH:MM 或 HH:MM:SS 格式
+if len(sign_time) == 2:
+    sign_time = (int(sign_time[0]), int(sign_time[1]), 0)
+else:
+    sign_time = (int(sign_time[0]), int(sign_time[1]), int(sign_time[2]))
 
-@scheduler.scheduled_job('cron', hour=sign_time[0], minute=sign_time[1])
+@scheduler.scheduled_job('cron', hour=sign_time[0], minute=sign_time[1], second=sign_time[2])
 async def scheduled_autosign():
     bot = get_bot()
     for group_id in available_groups:
