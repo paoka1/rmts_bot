@@ -221,7 +221,7 @@ pyright
 
 ### 测试工具
 
-如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试（推荐），或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)
+如果你没有配置 NapCat 等协议端，可以使用 [matcha](https://github.com/A-kirami/matcha) 模拟 QQ 进行测试，或者使用 [Console 适配器](https://github.com/nonebot/adapter-console)
 
 ### 提交 Pull Request
 
