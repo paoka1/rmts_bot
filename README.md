@@ -1,8 +1,8 @@
 # rmts bot
 
-以迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架和 OneBotv11 协议开发，支持 AI 对话、B站直播推送、互动游戏等多种功能
+以明日方舟角色迷迭香（Rosmontis）为核心设定的 QQ 群聊机器人，基于 NoneBot2 框架和 OneBotv11 协议开发，支持 AI 对话、B站直播推送、互动游戏等多种功能
 
-## 功能介绍
+## 部分功能介绍
 
 ### AI 对话
 
@@ -34,12 +34,10 @@
 - 查询服务器状态（艾特发送`查询状态`）
 - 玩家上线、离线提醒
 
-等...
-
 ## 部署配置
 
 ### 环境要求
-- Python >= 3.9, < 4.0
+- Python >= 3.11
 - OneBot V11 协议端（如 [NapCat](https://napneko.github.io/) 等）
 
 ### 部署步骤
@@ -61,7 +59,7 @@ pip install -e .
 
 3.配置环境变量
 
-详见`.env`文件，根据实际情况修改配置，主要配置项：
+详见`.env`文件，根据实际情况修改配置，部分配置如下：
 
 **AI 对话相关**
 
@@ -94,11 +92,15 @@ PORT=8080      # 按实际填写
 ONEBOT_ACCESS_TOKEN= # 与协议端保持一致
 ```
 
-等...
-
 4.运行机器人
 
 进入 Bot 项目目录，运行：
+
+```bash
+python bot.py
+```
+
+或（需安装[nb-cli](https://github.com/nonebot/nb-cli)）：
 
 ```bash
 nb run
@@ -211,10 +213,8 @@ Function Calling 函数应拥有一个 `str` 类型的返回值，对参数的�
 ```bash
 # 安装开发依赖
 pip install -e ".[dev]"
-
 # 使用 ruff 格式化代码
 ruff format .
-
 # 使用 pyright 检查类型
 pyright
 ```
