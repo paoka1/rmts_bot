@@ -10,6 +10,7 @@ from nonebot.adapters.onebot.v11 import MessageSegment
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
 from .game import RouletteGame
+from rmts.utils import acquire_global_token_decorator as acquire_token
 
 config = get_driver().config
 
@@ -19,6 +20,7 @@ roulette_game = RouletteGame(config.roulette_available_groups, misfire_prob=0.05
 roulette_game_handler = on_fullmatch("香香轮盘", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @roulette_game_handler.handle()
+@acquire_token()
 async def handle_roulette_game(bot: Bot, event: GroupMessageEvent):
     text = roulette_game.start(event.group_id)
     await roulette_game_handler.finish(MessageSegment.reply(event.message_id) + text)
@@ -28,6 +30,7 @@ async def handle_roulette_game(bot: Bot, event: GroupMessageEvent):
 roulette_spin_handler = on_fullmatch("香香开枪", rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @roulette_spin_handler.handle()
+@acquire_token()
 async def handle_roulette_spin(bot: Bot, event: GroupMessageEvent):
     text, is_fire = roulette_game.fire(event.group_id)
     await roulette_spin_handler.send(MessageSegment.reply(event.message_id) + text)

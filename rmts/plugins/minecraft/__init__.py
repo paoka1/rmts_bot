@@ -8,6 +8,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from typing import List
 
 from rmts.utils.config import split_groups
+from rmts.utils import acquire_global_token_decorator as acquire_token
 
 from .status import MinecraftServerStatus
 from .status import MinecraftPlayerStatus
@@ -38,6 +39,7 @@ fullmatch_words = ("查询服务器状态", "服务器状态", "查询状态", "
 query_status_handler = on_fullmatch(fullmatch_words, rule=to_me() & is_type(GroupMessageEvent), priority=2, block=True)
 
 @query_status_handler.handle()
+@acquire_token()
 async def handle_query_status(event: GroupMessageEvent):
     if str(event.group_id) not in available_groups:
         await query_status_handler.finish("功能未启用")
