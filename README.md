@@ -127,6 +127,7 @@ rmts/
 ├── resources/       # 资源文件
 │   ├── json/        # 数据
 │   └── images/      # 图片资源
+├── tests/           # 测试目录
 └── utils/           # 通用工具
     ├── action.py    # 消息发送等操作
     ├── config.py    # 配置工具
@@ -146,13 +147,13 @@ mkdir rmts/plugins/your_plugin
 
 ```python
 from nonebot import on_message
-from nonebot.adapters.onebot.v11 import MessageEvent
+from nonebot.adapters import Event
 
 # 创建消息监听器，监听所有消息
 hello_matcher = on_message()
 
 @hello_matcher.handle()
-async def handle_hello(event: MessageEvent):
+async def handle_hello(event: Event):
     """
     收到消息后判断内容是否包含 'hello'，如果是就回复 'world'
     """
