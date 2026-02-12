@@ -1,5 +1,6 @@
 import random
 
+from nonebot import logger
 from nonebot import get_driver
 from nonebot.rule import is_type
 from nonebot import on_message, on_notice, on_fullmatch
@@ -26,6 +27,10 @@ chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
 @acquire_token()
 async def rmts_chat(event: GroupMessageEvent):
     text = event.get_plaintext().strip()
+    if len(text) > 325:
+        logger.warning(f"群聊{event.group_id}中用户{event.user_id}发送过长消息{text}，长度为{len(text)}，已忽略")
+        await chat.finish()
+
     nickname = event.sender.card if event.sender.card else event.sender.nickname
     user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）对你说：" + text
     reply = await model_pool.chat(event.group_id, event.user_id, user_message)

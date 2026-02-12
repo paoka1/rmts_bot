@@ -37,7 +37,8 @@ class Model:
                  prompt: str = prompt,
                  max_history: int = 10,
                  temperature: float = 1.5,
-                 max_function_calls: int = 10
+                 max_function_calls: int = 10,
+                 max_tokens: int = 256
     ) -> None:
         """
         参数：
@@ -50,6 +51,7 @@ class Model:
             max_history: 最大历史消息条数
             temperature: 温度参数，控制输出随机性
             max_function_calls: 最大函数调用次数，防止无限循环
+            max_tokens: 模型输出的最大 token 数量限制
         """
 
         self.client: AsyncOpenAI
@@ -62,6 +64,7 @@ class Model:
         self.max_history = max_history
         self.temperature = temperature
         self.max_function_calls = max_function_calls
+        self.max_tokens = max_tokens
         self.messages: List[Union[ChatCompletionSystemMessageParam,
                                   ChatCompletionUserMessageParam,
                                   ChatCompletionAssistantMessageParam,
@@ -175,6 +178,7 @@ class Model:
             model=self.model,
             messages=self.messages,
             temperature=self.temperature,
+            max_tokens=self.max_tokens,
             tools=self.fc.to_schemas(),
             tool_choice="auto",
             stream=False
