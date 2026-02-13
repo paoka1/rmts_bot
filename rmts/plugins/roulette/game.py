@@ -1,4 +1,5 @@
 import random
+import asyncio
 
 from enum import Enum, auto
 
@@ -110,21 +111,28 @@ class RouletteGame:
         """
         self.misfire_prob = misfire_prob
         self.groups = {}
+        self.locks = {}  # 每个群组的锁
         self.available_groups = split_groups(available_groups)
         self.ban_duration = 60
 
-    def start(self, group_id: int) -> str:
+    async def start(self, group_id: int) -> str:
         """
         开始游戏
         """
         if str(group_id) not in self.available_groups:
             return "功能未启用"
-        if group_id in self.groups:
-            return "游戏已在进行中"
-        self.groups[group_id] = Game(self.misfire_prob)
-        return self.groups[group_id].get_text(0)
+        
+        # 为该群组创建锁（如果不存在）
+        if group_id not in self.locks:
+            self.locks[group_id] = asyncio.Lock()
+        
+        async with self.locks[group_id]:
+            if group_id in self.groups:
+                return "游戏已在进行中"
+            self.groups[group_id] = Game(self.misfire_prob)
+            return self.groups[group_id].get_text(0)
     
-    def fire(self, group_id: int) -> tuple[str, bool]:
+    async def fire(self, group_id: int) -> tuple[str, bool]:
         """
         模拟开枪，参数：
             group_id: 群组ID
@@ -133,9 +141,15 @@ class RouletteGame:
         """
         if str(group_id) not in self.available_groups:
             return "功能未启用", False
-        if group_id not in self.groups:
-            return "请先开始游戏", False
-        text, status = self.groups[group_id].fire()
-        if status == Status.MISSFIRE or status == Status.FIRE:
-            del self.groups[group_id]
-        return text, status == Status.FIRE
+        
+        # 为该群组创建锁（如果不存在）
+        if group_id not in self.locks:
+            self.locks[group_id] = asyncio.Lock()
+        
+        async with self.locks[group_id]:
+            if group_id not in self.groups:
+                return "请先开始游戏", False
+            text, status = self.groups[group_id].fire()
+            if status == Status.MISSFIRE or status == Status.FIRE:
+                del self.groups[group_id]
+            return text, status == Status.FIRE

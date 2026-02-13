@@ -22,7 +22,7 @@ roulette_game_handler = on_fullmatch("香香轮盘", rule=to_me() & is_type(Grou
 @roulette_game_handler.handle()
 @acquire_token()
 async def handle_roulette_game(bot: Bot, event: GroupMessageEvent):
-    text = roulette_game.start(event.group_id)
+    text = await roulette_game.start(event.group_id)
     await roulette_game_handler.finish(MessageSegment.reply(event.message_id) + text)
 
 
@@ -32,7 +32,7 @@ roulette_spin_handler = on_fullmatch("香香开枪", rule=to_me() & is_type(Grou
 @roulette_spin_handler.handle()
 @acquire_token()
 async def handle_roulette_spin(bot: Bot, event: GroupMessageEvent):
-    text, is_fire = roulette_game.fire(event.group_id)
+    text, is_fire = await roulette_game.fire(event.group_id)
     await roulette_spin_handler.send(MessageSegment.reply(event.message_id) + text)
     if is_fire:
         await bot.set_group_ban(
