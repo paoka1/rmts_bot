@@ -29,22 +29,9 @@ async def rmts_chat(bot: Bot, event: GroupMessageEvent):
     # 提取当前消息中的图片
     images = [seg.data.get("url") for seg in event.get_message() if seg.type == "image"]
     
-    # 检查是否有回复消息
-    reply_msg = None
-    for seg in event.get_message():
-        if seg.type == "reply" and (reply_msg_id := seg.data.get("id")):
-            try:
-                # 获取被回复消息的详细信息
-                reply_msg = await bot.get_msg(message_id=int(reply_msg_id))
-                break
-            except Exception as e:
-                logger.warning(f"获取被回复消息失败: {e}")
-                await chat.finish()  # 无法获取被回复消息，结束处理
-    
     # 如果有被回复的消息，提取其中的图片
-    if reply_msg:
-        replied_message = Message(reply_msg.get("message"))
-        replied_images = [seg.data.get("url") for seg in replied_message if seg.type == "image"]
+    if event.reply:
+        replied_images = [seg.data.get("url") for seg in event.reply.message if seg.type == "image"]
         # 将被回复消息中的图片添加到图片列表
         images.extend(replied_images)
     
