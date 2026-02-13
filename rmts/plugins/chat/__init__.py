@@ -5,7 +5,7 @@ from nonebot import get_driver
 from nonebot.rule import is_type
 from nonebot import on_message, on_notice, on_fullmatch
 from nonebot.rule import to_me, Rule
-from nonebot.adapters.onebot.v11 import MessageSegment
+from nonebot.adapters.onebot.v11 import MessageSegment, Message
 from nonebot.adapters.onebot.v11 import Bot, PokeNotifyEvent
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
 
@@ -25,8 +25,29 @@ chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
 
 @chat.handle()
 @acquire_token()
-async def rmts_chat(event: GroupMessageEvent):
+async def rmts_chat(bot: Bot, event: GroupMessageEvent):
+    # 提取当前消息中的图片
     images = [seg.data.get("url") for seg in event.get_message() if seg.type == "image"]
+    
+    # 检查是否有回复消息
+    reply_msg = None
+    for seg in event.get_message():
+        if seg.type == "reply" and (reply_msg_id := seg.data.get("id")):
+            try:
+                # 获取被回复消息的详细信息
+                reply_msg = await bot.get_msg(message_id=int(reply_msg_id))
+                break
+            except Exception as e:
+                logger.warning(f"获取被回复消息失败: {e}")
+                await chat.finish()  # 无法获取被回复消息，结束处理
+    
+    # 如果有被回复的消息，提取其中的图片
+    if reply_msg:
+        replied_message = Message(reply_msg.get("message"))
+        replied_images = [seg.data.get("url") for seg in replied_message if seg.type == "image"]
+        # 将被回复消息中的图片添加到图片列表
+        images.extend(replied_images)
+    
     if len(images) > 1:
         logger.warning(f"群聊{event.group_id}中用户{event.user_id}发送了多张图片{images}，已忽略")
         await chat.finish()
