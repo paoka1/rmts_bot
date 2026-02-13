@@ -26,6 +26,9 @@ chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
 @chat.handle()
 @acquire_token()
 async def rmts_chat(event: GroupMessageEvent):
+    if not event.get_message().only("text"):
+        logger.debug(f"群聊{event.group_id}中用户{event.user_id}发送非纯文本消息{event.get_message()}")
+
     text = event.get_plaintext().strip()
     if len(text) > 325:
         logger.warning(f"群聊{event.group_id}中用户{event.user_id}发送过长消息{text}，长度为{len(text)}，已忽略")
@@ -34,11 +37,8 @@ async def rmts_chat(event: GroupMessageEvent):
     nickname = event.sender.card if event.sender.card else event.sender.nickname
     user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）对你说：" + text
     reply = await model_pool.chat(event.group_id, event.user_id, user_message)
-
     if reply:
         await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
-    else:
-        await chat.finish()
 
 
 poke_msgs = ["博士（TA的名字是：{}，TA的ID是{}）戳了戳你",
@@ -54,16 +54,15 @@ poke_handler = on_notice(rule=Rule(is_poke_me), priority=3, block=True)
 @poke_handler.handle()
 @acquire_token()
 async def handle_poke(bot: Bot, event: PokeNotifyEvent):
-    nickname = await get_nickname(bot, event.group_id, event.user_id)
-    text = random.choice(poke_msgs).format(nickname, event.user_id)
     if event.group_id is None: # 私聊戳一戳不回复
         await poke_handler.finish()
-    reply = await model_pool.chat(event.group_id, event.user_id, text)
+        
+    nickname = await get_nickname(bot, event.group_id, event.user_id)
+    text = random.choice(poke_msgs).format(nickname, event.user_id)
 
+    reply = await model_pool.chat(event.group_id, event.user_id, text)
     if reply:
-        await poke_handler.send(MessageSegment.at(event.user_id) + f" {reply}")
-    else:
-        await poke_handler.finish()
+        await poke_handler.finish(MessageSegment.at(event.user_id) + f" {reply}")
 
 
 # 在程序关闭时保存聊天记录
