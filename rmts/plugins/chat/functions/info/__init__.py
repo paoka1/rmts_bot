@@ -3,6 +3,7 @@
 """
 
 from datetime import datetime
+from typing import Optional
 
 from nonebot import get_driver
 from nonebot.log import logger
@@ -12,6 +13,7 @@ from rmts.plugins.chat.function_calling import FunctionDescription, function_con
 from .birthday import Birthday
 from .weather import Weather
 from .operators import OperatorInfoManager
+from .image_vision import ImageVision
 
 # 获取当前时间
 func_desc_time = FunctionDescription(name="get_current_time", description="获取当前时间")
@@ -84,3 +86,27 @@ async def get_operator_info(name: str) -> str:
         return f"{name}的干员信息：{summary}"
     else:
         return f"没有找到名为{name}的干员信息"
+
+# 图片识别
+iv = ImageVision(
+    api_key=get_driver().config.image_vision_api_key,
+    model=get_driver().config.image_vision_model,
+    base_url=get_driver().config.image_vision_base_url
+)
+
+image_vision_desc = FunctionDescription(name="analyze_image", description="分析图片并返回描述信息")
+image_vision_desc.add_param(name="image_url", description="图片的URL地址", param_type="string", required=True)
+image_vision_desc.add_param(name="focus_point", description="图片中需要关注的点（可选）", param_type="string", required=False)
+
+@function_container.function_calling(image_vision_desc)
+async def analyze_image(image_url: str, focus_point: Optional[str] = None) -> str:
+    # 验证URL格式
+    if not image_url.startswith("https://multimedia.nt.qq.com.cn/download?appid="):
+        return "不支持分析该图片"
+    
+    try:
+        result = await iv.analyze_image(image_url=image_url, focus_point=focus_point, detail="auto")
+        return result
+    except Exception as e:
+        logger.error(f"分析图片时发生错误: {str(e)}")
+        return f"分析图片时发生错误: {str(e)}"

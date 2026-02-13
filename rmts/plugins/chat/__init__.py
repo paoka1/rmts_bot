@@ -26,8 +26,10 @@ chat = on_message(rule=to_me() & is_type(GroupMessageEvent), priority=5)
 @chat.handle()
 @acquire_token()
 async def rmts_chat(event: GroupMessageEvent):
-    if not event.get_message().only("text"):
-        logger.debug(f"群聊{event.group_id}中用户{event.user_id}发送非纯文本消息{event.get_message()}")
+    images = [seg.data.get("url") for seg in event.get_message() if seg.type == "image"]
+    if len(images) > 1:
+        logger.warning(f"群聊{event.group_id}中用户{event.user_id}发送了多张图片{images}，已忽略")
+        await chat.finish()
 
     text = event.get_plaintext().strip()
     if len(text) > 325:
@@ -35,7 +37,11 @@ async def rmts_chat(event: GroupMessageEvent):
         await chat.finish()
 
     nickname = event.sender.card if event.sender.card else event.sender.nickname
-    user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）对你说：" + text
+    user_message = f"博士（TA的名字是：{nickname}，TA的ID是{event.user_id}）"
+    if images:
+        images_text = "，".join(f"第{i+1}张图片的链接是：{url}" for i, url in enumerate(images))
+        user_message += f"，发送了图片：{images_text}"
+    user_message += f"，对你说：{text}"
     reply = await model_pool.chat(event.group_id, event.user_id, user_message)
     if reply:
         await chat.finish(MessageSegment.reply(event.message_id) + f"{reply}")
@@ -56,7 +62,7 @@ poke_handler = on_notice(rule=Rule(is_poke_me), priority=3, block=True)
 async def handle_poke(bot: Bot, event: PokeNotifyEvent):
     if event.group_id is None: # 私聊戳一戳不回复
         await poke_handler.finish()
-        
+
     nickname = await get_nickname(bot, event.group_id, event.user_id)
     text = random.choice(poke_msgs).format(nickname, event.user_id)
 
