@@ -11,7 +11,7 @@ from rmts.utils import acquire_global_token_decorator as acquire_token
 emoji_like_rule = {
     frozenset({"新年快乐"}): [333],
     frozenset({"生日快乐"}): [53],
-    frozenset({"面包"}): [12783]
+    frozenset({"面包"}): [127838]
 }
 
 emoji_like = on_keyword(
