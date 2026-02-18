@@ -43,3 +43,32 @@ async def send_sticker(type: str, group_id: int) -> str:
         message=MessageSegment.image(file=sticker_bytes)
     )
     return f"已向博士发送表情 {type}"
+
+# 群组禁言
+func_desc_group_ban = FunctionDescription(name="group_ban", description="禁言指定博士一段时间")
+func_desc_group_ban.add_param(name="doctor_id", description="博士的唯一标识符", param_type="integer", required=True)
+func_desc_group_ban.add_param(name="duration", description="禁言持续时间，单位为秒", param_type="integer", required=True)
+
+func_desc_group_ban.add_injection_param(name="group_id", description="群组的唯一标识符")
+func_desc_group_ban.add_injection_param(name="user_id", description="用户的唯一标识符")
+
+@function_container.function_calling(func_desc_group_ban)
+async def group_ban(doctor_id: int, duration: int, group_id: int, user_id: int) -> str:
+    bot = get_bot()
+
+    if duration <= 0:
+        return "禁言持续时间必须大于0秒"
+    
+    if duration > 12 * 3600:
+        return "禁言持续时间不能超过12小时"
+
+    if doctor_id != user_id:
+        return "博士只能对自己进行禁言，无法对其他博士进行禁言"
+    
+    await bot.call_api(
+        "set_group_ban",
+        group_id=group_id,
+        user_id=doctor_id,
+        duration=duration
+    )
+    return f"已对ID为{doctor_id}的博士进行禁言，持续时间为{duration}秒"
