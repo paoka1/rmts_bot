@@ -56,11 +56,11 @@ func_desc_group_ban.add_injection_param(name="user_id", description="用户的�
 async def group_ban(doctor_id: int, duration: int, group_id: int, user_id: int) -> str:
     bot = get_bot()
 
-    if duration <= 0:
-        return "禁言持续时间必须大于0秒"
+    if duration < 60:
+        return "禁言持续时间必须大于60秒"
     
-    if duration > 12 * 3600:
-        return "禁言持续时间不能超过12小时"
+    if duration > 24 * 3600:
+        return "禁言持续时间不能超过24小时"
 
     if doctor_id != user_id:
         return "博士只能对自己进行禁言，无法对其他博士进行禁言"
