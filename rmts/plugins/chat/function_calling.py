@@ -119,7 +119,7 @@ class FunctionDescription:
         返回值：
             返回函数描述对象本身，支持链式调用
         说明：
-            此方法用于在 function calling 函数中注入不需要 LLM 提供的参数，如果 LLM 提供了这些参数，则不会覆盖
+            此方法用于在 function calling 函数中注入不需要 LLM 提供的参数，如果 LLM 提供了这些参数，则会被覆盖
             参数注入使用变量名进行匹配，这些参数由 FunctionCalling 类提供，如果想添加更多注入参数，请修改 ModelPool 类的注入参数字典
             然后修改此方法的 name 参数类型提示，在其中添加新的参数名称
         可用的注入参数名称包括：
@@ -277,8 +277,8 @@ class FunctionCalling:
         # 注入参数
         fd = self.function_descriptions[name]
         for inj_name in fd.injection_parameters:
-            if inj_name not in args: # 注入那些没有被提供的参数
-                args[inj_name] = self.injection_params[inj_name]
+            # if inj_name not in args: # 注入那些没有被提供的参数
+            args[inj_name] = self.injection_params[inj_name] # 覆盖所有参数
 
         logger.info(f"调用函数 {name}，参数: {args}")
         
