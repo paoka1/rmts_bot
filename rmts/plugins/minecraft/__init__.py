@@ -1,4 +1,4 @@
-from nonebot import require
+from nonebot import require, logger
 from nonebot import get_driver, get_bot
 from nonebot.rule import is_type, to_me
 from nonebot import on_fullmatch
@@ -121,4 +121,4 @@ async def scheduled_minecraft_status_check():
                 try:
                     await bot.send_group_msg(group_id=int(group_id), message=message_text)
                 except Exception as e:
-                    print(f"向群 {group_id} 发送消息失败: {e}")
+                    logger.warning(f"向群 {group_id} 发送消息失败: {e}")

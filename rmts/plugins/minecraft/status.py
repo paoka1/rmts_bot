@@ -4,6 +4,9 @@ Minecraft服务器状态查询模块
 """
 
 import asyncio
+
+from nonebot import logger
+
 from typing import Dict, Any, Optional
 from mcstatus import JavaServer
 
@@ -86,10 +89,10 @@ class MinecraftServerStatus:
             return result
             
         except asyncio.TimeoutError:
-            print(f"连接超时: {self.host}:{self.port}")
+            logger.warning(f"连接超时: {self.host}:{self.port}")
             return None
         except Exception as e:
-            print(f"查询失败: {e}")
+            logger.warning(f"查询失败: {e}")
             return None
     
     def __repr__(self) -> str:
