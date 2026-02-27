@@ -145,7 +145,7 @@ class ImageVision:
         ]
         
         # 调用 OpenAI Vision API（每次都是全新的对话）
-        response = await self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(  # type: ignore[call-overload]
             model=self.model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -153,7 +153,12 @@ class ImageVision:
             ],
             temperature=self.temperature,
             max_tokens=self.max_tokens,
-            stream=False
+            stream=False,
+            tools=[  # type: ignore
+                {  # type: ignore
+                    "type": "web_search"  # 指定使用联网搜索工具
+                }
+            ]
         )
         
         # 提取描述结果
@@ -207,7 +212,7 @@ class ImageVision:
         ]
         
         # 调用 OpenAI Vision API
-        response = await self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(  # type: ignore[call-overload]
             model=self.model,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -215,7 +220,12 @@ class ImageVision:
             ],
             temperature=self.temperature,
             max_tokens=self.max_tokens,
-            stream=False
+            stream=False,
+            tools=[  # type: ignore
+                {  # type: ignore
+                    "type": "web_search"  # 指定使用联网搜索工具
+                }
+            ]
         )
         
         # 提取描述结果和使用情况
