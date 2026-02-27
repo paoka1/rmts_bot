@@ -1,6 +1,6 @@
 """
 图片识别模块
-使用 OpenAI Vision API 对图片进行分析和描述
+使用 LLM API 对图片进行分析和描述
 """
 
 from openai import AsyncOpenAI
@@ -9,13 +9,13 @@ from typing import Optional, Dict, Any
 
 class ImageVision:
     """
-    图片识别类，用于通过 OpenAI Vision API 分析图片内容
+    图片识别类，用于通过 LLM API 分析图片内容
     
     使用方法：
         vision = ImageVision(
             api_key="your-api-key",
-            model="gpt-4o",
-            base_url="https://api.openai.com/v1"
+            model="doubao-seed-1-8-251228",
+            base_url="https://ark.cn-beijing.volces.com/api/v3"
         )
         description = await vision.analyze_image(
             image_url="https://example.com/image.jpg",
@@ -27,8 +27,8 @@ class ImageVision:
         self,
         *,
         api_key: str,
-        model: str = "gpt-4o",
-        base_url: str = "https://api.openai.com/v1",
+        model: str = "doubao-seed-1-8-251228",
+        base_url: str = "https://ark.cn-beijing.volces.com/api/v3",
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> None:
@@ -37,8 +37,8 @@ class ImageVision:
         
         参数：
             api_key: OpenAI API 密钥
-            model: 使用的视觉模型名称，默认 gpt-4o
-            base_url: API 的基础 URL
+            model: 使用的视觉模型名称，默认 doubao-seed-1-8-251228
+            base_url: API 的基础 URL，默认使用火山引擎豆包模型接口
             temperature: 温度参数，控制输出的随机性和创造性 (0.0-2.0)
             max_tokens: 模型输出的最大 token 数量
         """
@@ -275,4 +275,3 @@ if __name__ == "__main__":
             await vision.close()
     
     asyncio.run(main())
-    
