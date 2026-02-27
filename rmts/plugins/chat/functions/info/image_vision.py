@@ -36,9 +36,9 @@ class ImageVision:
         初始化图片识别客户端
         
         参数：
-            api_key: OpenAI API 密钥
+            api_key: API 密钥
             model: 使用的视觉模型名称，默认 doubao-seed-1-8-251228
-            base_url: API 的基础 URL，默认使用火山引擎豆包模型接口
+            base_url: API 的基础 URL
             temperature: 温度参数，控制输出的随机性和创造性 (0.0-2.0)
             max_tokens: 模型输出的最大 token 数量
         """
@@ -118,7 +118,7 @@ class ImageVision:
             图片的文字描述
             
         异常：
-            可能抛出 OpenAI API 相关的异常
+            可能抛出 API 相关的异常
         """
         # 初始化客户端
         self._init_client()
@@ -144,7 +144,7 @@ class ImageVision:
             }
         ]
         
-        # 调用 OpenAI Vision API（每次都是全新的对话）
+        # 调用 LLM API（每次都是全新的对话）
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -206,7 +206,7 @@ class ImageVision:
             }
         ]
         
-        # 调用 OpenAI Vision API
+        # 调用 LLM API
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
