@@ -1,22 +1,21 @@
 """
 图片识别模块
-使用豆包 API 对图片进行分析和描述
+使用 OpenAI Vision API 对图片进行分析和描述
 """
 
-import httpx
-
+from openai import AsyncOpenAI
 from typing import Optional, Dict, Any
 
 
 class ImageVision:
     """
-    图片识别类，用于通过豆包 API 分析图片内容
+    图片识别类，用于通过 OpenAI Vision API 分析图片内容
     
     使用方法：
         vision = ImageVision(
             api_key="your-api-key",
-            model="doubao-seed-1-8-251228",
-            base_url="https://ark.cn-beijing.volces.com/api/v3"
+            model="gpt-4o",
+            base_url="https://api.openai.com/v1"
         )
         description = await vision.analyze_image(
             image_url="https://example.com/image.jpg",
@@ -28,8 +27,8 @@ class ImageVision:
         self,
         *,
         api_key: str,
-        model: str = "doubao-seed-1-8-251228",
-        base_url: str = "https://ark.cn-beijing.volces.com/api/v3",
+        model: str = "gpt-4o",
+        base_url: str = "https://api.openai.com/v1",
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> None:
@@ -37,28 +36,25 @@ class ImageVision:
         初始化图片识别客户端
         
         参数：
-            api_key: 豆包 API 密钥
-            model: 使用的视觉模型名称，默认 doubao-seed-1-8-251228
+            api_key: OpenAI API 密钥
+            model: 使用的视觉模型名称，默认 gpt-4o
             base_url: API 的基础 URL
             temperature: 温度参数，控制输出的随机性和创造性 (0.0-2.0)
             max_tokens: 模型输出的最大 token 数量
         """
         self.api_key = api_key
         self.model = model
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.client: Optional[httpx.AsyncClient] = None
+        self.client: Optional[AsyncOpenAI] = None
 
     def _init_client(self) -> None:
-        """初始化 HTTP 客户端（延迟初始化）"""
+        """初始化 OpenAI 客户端（延迟初始化）"""
         if self.client is None:
-            self.client = httpx.AsyncClient(
-                timeout=60.0,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                }
+            self.client = AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
             )
 
     def _build_system_prompt(self, focus_point: Optional[str] = None) -> str:
@@ -122,84 +118,51 @@ class ImageVision:
             图片的文字描述
             
         异常：
-            可能抛出 HTTP 相关的异常
+            可能抛出 OpenAI API 相关的异常
         """
         # 初始化客户端
         self._init_client()
         
         if self.client is None:
-            raise RuntimeError("Failed to initialize HTTP client")
+            raise RuntimeError("Failed to initialize OpenAI client")
         
         # 构建系统提示词
         system_prompt = self._build_system_prompt(focus_point)
         
-        # 构建用户提示文本
-        user_text = "请详细描述这张图片的内容。" if not focus_point else f"请描述这张图片的内容，特别关注：{focus_point}"
-        
-        # 构建请求体（豆包 API 格式）
-        request_body = {
-            "model": self.model,
-            "stream": False,
-            "tools": [
-                {"type": "web_search"}
-            ],
-            "input": [
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": system_prompt
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": user_text
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_url
-                            }
-                        }
-                    ]
+        # 构建用户消息
+        user_message_content = [
+            {
+                "type": "text",
+                "text": "请详细描述这张图片的内容。" if not focus_point else f"请描述这张图片的内容，特别关注：{focus_point}"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": image_url,
+                    "detail": detail
                 }
-            ]
-        }
+            }
+        ]
         
-        # 添加可选参数
-        if self.temperature is not None:
-            request_body["temperature"] = self.temperature
-        if self.max_tokens is not None:
-            request_body["max_tokens"] = self.max_tokens
-        
-        # 发送 HTTP POST 请求
-        response = await self.client.post(
-            f"{self.base_url}/responses",
-            json=request_body
+        # 调用 OpenAI Vision API（每次都是全新的对话）
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message_content}
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            stream=False
         )
         
-        # 检查响应状态
-        response.raise_for_status()
-        
-        # 解析响应
-        result = response.json()
-        
         # 提取描述结果
-        if "data" in result and len(result["data"]) > 0:
-            first_data = result["data"][0]
-            if "content" in first_data and len(first_data["content"]) > 0:
-                for content_item in first_data["content"]:
-                    if content_item.get("type") == "text":
-                        description = content_item.get("text", "")
-                        if description:
-                            return description.strip()
+        description = response.choices[0].message.content
         
-        raise ValueError("API returned empty or invalid response")
+        if description is None:
+            raise ValueError("API returned empty response")
+        
+        return description.strip()
 
     async def analyze_image_with_usage(
         self,
@@ -223,85 +186,48 @@ class ImageVision:
         self._init_client()
         
         if self.client is None:
-            raise RuntimeError("Failed to initialize HTTP client")
+            raise RuntimeError("Failed to initialize OpenAI client")
         
         # 构建系统提示词
         system_prompt = self._build_system_prompt(focus_point)
         
-        # 构建用户提示文本
-        user_text = "请详细描述这张图片的内容。" if not focus_point else f"请描述这张图片的内容，特别关注：{focus_point}"
-        
-        # 构建请求体（豆包 API 格式）
-        request_body = {
-            "model": self.model,
-            "stream": False,
-            "tools": [
-                {"type": "web_search"}
-            ],
-            "input": [
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": system_prompt
-                        }
-                    ]
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": user_text
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_url
-                            }
-                        }
-                    ]
+        # 构建用户消息
+        user_message_content = [
+            {
+                "type": "text",
+                "text": "请详细描述这张图片的内容。" if not focus_point else f"请描述这张图片的内容，特别关注：{focus_point}"
+            },
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": image_url,
+                    "detail": detail
                 }
-            ]
-        }
+            }
+        ]
         
-        # 添加可选参数
-        if self.temperature is not None:
-            request_body["temperature"] = self.temperature
-        if self.max_tokens is not None:
-            request_body["max_tokens"] = self.max_tokens
-        
-        # 发送 HTTP POST 请求
-        response = await self.client.post(
-            f"{self.base_url}/responses",
-            json=request_body
+        # 调用 OpenAI Vision API
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message_content}
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            stream=False
         )
         
-        # 检查响应状态
-        response.raise_for_status()
+        # 提取描述结果和使用情况
+        description = response.choices[0].message.content
         
-        # 解析响应
-        result = response.json()
+        if description is None:
+            raise ValueError("API returned empty response")
         
-        # 提取描述结果
-        description = ""
-        if "data" in result and len(result["data"]) > 0:
-            first_data = result["data"][0]
-            if "content" in first_data and len(first_data["content"]) > 0:
-                for content_item in first_data["content"]:
-                    if content_item.get("type") == "text":
-                        description = content_item.get("text", "")
-                        break
-        
-        if not description:
-            raise ValueError("API returned empty or invalid response")
-        
-        # 提取 token 使用情况
         usage = {
-            "prompt_tokens": result.get("usage", {}).get("input_tokens", 0),
-            "completion_tokens": result.get("usage", {}).get("output_tokens", 0),
-            "total_tokens": result.get("usage", {}).get("total_tokens", 0)
+            "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+            "total_tokens": response.usage.total_tokens if response.usage else 0
         }
         
         return {
@@ -312,7 +238,7 @@ class ImageVision:
     async def close(self) -> None:
         """关闭客户端连接"""
         if self.client is not None:
-            await self.client.aclose()
+            await self.client.close()
             self.client = None
 
 if __name__ == "__main__":
@@ -349,3 +275,4 @@ if __name__ == "__main__":
             await vision.close()
     
     asyncio.run(main())
+    
